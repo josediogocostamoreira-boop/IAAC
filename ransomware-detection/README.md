@@ -24,6 +24,7 @@ maliciosos e, numa segunda fase, caracterizar a categoria/família do malware.
   leakage-safe e deduplicação por MD5.
 - [`src/train.py`](./src/train.py): baseline Dummy, Logistic Regression,
   Random Forest e Extra Trees.
+- [`src/predict.py`](./src/predict.py): previsão para novas linhas CSV.
 
 ## Ambiente
 
@@ -54,6 +55,27 @@ python src/train.py --data ransom.csv --output results
 O comando cria métricas em `results/model_metrics.csv`, estatísticas de
 preparação em `results/preparation_stats.json`, o schema de features e o
 pipeline do melhor modelo em `results/ransomware_classifier.joblib`.
+
+## Fazer previsões
+
+O modelo recebe um CSV com as mesmas 72 features usadas no treino. Pode usar
+uma linha do dataset como teste:
+
+```powershell
+python -c "import pandas as pd; pd.read_csv('ransom.csv', nrows=1).to_csv('sample.csv', index=False)"
+python src/predict.py --input sample.csv --output results/predictions.csv
+```
+
+Ou, para ver a previsão diretamente no terminal:
+
+```powershell
+python src/predict.py --input sample.csv
+```
+
+O resultado contém `prediction`, `malware_probability` e `confidence`. A
+probabilidade é uma estimativa do modelo e não uma garantia de que o ficheiro
+é seguro. Este comando classifica características já extraídas; ainda não
+extrai automaticamente características de um `.exe`.
 
 ## Resultado do baseline
 
