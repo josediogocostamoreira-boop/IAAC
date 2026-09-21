@@ -20,6 +20,10 @@ maliciosos e, numa segunda fase, caracterizar a categoria/família do malware.
   para o primeiro sprint.
 - [`docs/scrum-templates.md`](./docs/scrum-templates.md): templates de Daily,
   Sprint Review e Sprint Retrospective.
+- [`src/data_preprocessing.py`](./src/data_preprocessing.py): preparação
+  leakage-safe e deduplicação por MD5.
+- [`src/train.py`](./src/train.py): baseline Dummy, Logistic Regression,
+  Random Forest e Extra Trees.
 
 ## Ambiente
 
@@ -40,3 +44,21 @@ O primeiro problema é uma classificação binária (`Class`: `Benign` ou
 depois de validar o primeiro modelo. O dataset contém 10.876 amostras de cada
 classe, mas possui 7.849 MD5 repetidos; por isso a preparação deve remover
 duplicados por artefacto antes de separar treino e teste.
+
+## Treinar os baselines
+
+```powershell
+python src/train.py --data ransom.csv --output results
+```
+
+O comando cria métricas em `results/model_metrics.csv`, estatísticas de
+preparação em `results/preparation_stats.json`, o schema de features e o
+pipeline do melhor modelo em `results/ransomware_classifier.joblib`.
+
+## Resultado do baseline
+
+Após remover hashes com rótulos conflitantes e deduplicar por MD5, ficaram
+13.886 artefactos únicos. O Random Forest foi selecionado pelo maior recall de
+malware no teste: 99,55%, com ROC-AUC de 99,94%. Estes valores são um baseline
+reprodutível, não uma garantia de desempenho em amostras novas; a validação
+externa e a análise por família continuam necessárias.
