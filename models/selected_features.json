@@ -1,0 +1,17 @@
+[
+  "Packet Length Max",
+  "Total Length of Fwd Packet",
+  "Idle Max",
+  "Packet Length Std",
+  "Fwd Packet Length Min",
+  "ACK Flag Count",
+  "Bwd Packet Length Max",
+  "Idle Mean",
+  "Fwd Header Length",
+  "Dst Port",
+  "Flow IAT Min",
+  "Total Fwd Packet",
+  "Src Port",
+  "SYN Flag Count",
+  "Flow Duration"
+]

@@ -1,0 +1,6 @@
+Dataset source: https://www.kaggle.com/datasets/ailearner-researchlab/iot-intrusion-detection-hybrid-ml-dl-dataset
+Place the downloaded CSV in archive/final_dataset.csv
+
+Next steps:
+- Feature engineering completed; final RF trained on selected features.
+- Deliverables: `models/` (final models/reports), `outputs/` (EDA), `docs/FINAL_REPORT.md`.

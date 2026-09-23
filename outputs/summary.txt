@@ -1,0 +1,69 @@
+Shape: (1175222, 24)
+
+Dtypes:
+Src Port                        int64
+Dst Port                        int64
+Protocol                        int64
+Flow Duration                   int64
+Total Fwd Packet                int64
+Total Bwd packets               int64
+Total Length of Fwd Packet    float64
+Fwd Packet Length Min         float64
+Bwd Packet Length Max         float64
+Flow IAT Min                  float64
+Fwd IAT Min                   float64
+Fwd Header Length               int64
+Bwd Packets/s                 float64
+Packet Length Max             float64
+Packet Length Std             float64
+RST Flag Count                  int64
+FWD Init Win Bytes              int64
+Bwd Init Win Bytes              int64
+Idle Mean                     float64
+Idle Max                      float64
+FIN Flag Count                  int64
+SYN Flag Count                  int64
+ACK Flag Count                  int64
+Label                           int64
+dtype: object
+
+Missing values:
+Src Port                      0
+Dst Port                      0
+Protocol                      0
+Flow Duration                 0
+Total Fwd Packet              0
+Total Bwd packets             0
+Total Length of Fwd Packet    0
+Fwd Packet Length Min         0
+Bwd Packet Length Max         0
+Flow IAT Min                  0
+Fwd IAT Min                   0
+Fwd Header Length             0
+Bwd Packets/s                 0
+Packet Length Max             0
+Packet Length Std             0
+RST Flag Count                0
+FWD Init Win Bytes            0
+Bwd Init Win Bytes            0
+Idle Mean                     0
+Idle Max                      0
+FIN Flag Count                0
+SYN Flag Count                0
+ACK Flag Count                0
+Label                         0
+dtype: int64
+
+Description (numeric):
+           Src Port      Dst Port  ...  ACK Flag Count         Label
+count  1.175222e+06  1.175222e+06  ...    1.175222e+06  1.175222e+06
+mean   3.670140e+04  1.571190e+04  ...    8.865542e+00  7.370114e-01
+std    2.369893e+04  2.062436e+04  ...    3.761658e+02  4.402565e-01
+min    0.000000e+00  0.000000e+00  ...    0.000000e+00  0.000000e+00
+25%    1.900000e+03  5.300000e+01  ...    0.000000e+00  0.000000e+00
+50%    4.980050e+04  3.128000e+03  ...    1.000000e+00  1.000000e+00
+75%    5.529500e+04  3.200800e+04  ...    1.000000e+00  1.000000e+00
+max    6.553500e+04  6.553500e+04  ...    1.466490e+05  1.000000e+00
+
+[8 rows x 24 columns]
+
