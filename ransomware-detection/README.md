@@ -25,6 +25,8 @@ maliciosos e, numa segunda fase, caracterizar a categoria/família do malware.
 - [`src/train.py`](./src/train.py): baseline Dummy, Logistic Regression,
   Random Forest e Extra Trees.
 - [`src/predict.py`](./src/predict.py): previsão para novas linhas CSV.
+- [`src/data_preparation_report.py`](./src/data_preparation_report.py): relatório
+  reproduzível do Sprint 2 de Data Preparation.
 
 ## Ambiente
 
@@ -76,6 +78,18 @@ O resultado contém `prediction`, `malware_probability` e `confidence`. A
 probabilidade é uma estimativa do modelo e não uma garantia de que o ficheiro
 é seguro. Este comando classifica características já extraídas; ainda não
 extrai automaticamente características de um `.exe`.
+
+## Sprint 2 — Data Preparation
+
+Para executar o novo roadmap:
+
+```powershell
+python src/data_preparation_report.py --data ransom.csv --output results
+```
+
+O relatório cobre limpeza, missing values, outliers, split estratificado,
+seleção de features constantes/correlacionadas, scaling, candidatos de
+engenharia de features, limites de extração e balanceamento de classes.
 
 ## Resultado do baseline
 

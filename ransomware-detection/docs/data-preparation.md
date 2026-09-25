@@ -34,3 +34,23 @@
 Não remover outliers automaticamente apenas por regra IQR: tamanhos e contagens
 extremas podem ser sinais de malware. A decisão deve ser comparada com e sem
 transformação, usando validação e métricas orientadas ao risco.
+
+## Sprint 2 — execução
+
+O relatório executável [`data_preparation_report.py`](../src/data_preparation_report.py)
+implementa as verificações do Module 4:
+
+```powershell
+python src/data_preparation_report.py --data ransom.csv --output results
+```
+
+Produz:
+
+- `data_preparation_report.json`: decisões e contagens de todas as etapas;
+- `feature_quality.csv`: missing values, skewness e outliers IQR por feature;
+- `high_correlation_pairs.csv`: pares com |Spearman| >= 0,95.
+
+O split é estratificado (`random_state=42`), a imputação e a escala são
+ajustadas apenas no treino através do pipeline, e os outliers são reportados
+sem serem apagados. Features `log1p` são apresentadas como candidatos e só
+devem ser aplicadas se melhorarem as métricas em validação.

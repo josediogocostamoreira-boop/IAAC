@@ -17,6 +17,12 @@ Prioridade: **P0** é obrigatório, **P1** importante e **P2** extensão.
 | US-11 | Como equipa, queremos classificar a categoria de malware. | P2 | Modelo multiclasse e macro-F1 reportados. | 5 |
 | US-12 | Como equipa, queremos um relatório final reproduzível. | P0 | Método, resultados, riscos e próximos passos revistos. | 3 |
 
+## Estado no fim do Sprint 2
+
+Concluídas: US-01 a US-09 e US-12, no âmbito de Data Understanding, EDA,
+Data Preparation e baseline. US-10 e US-11 permanecem no backlog para
+explicabilidade e classificação multiclasse.
+
 ## Definição de pronto
 
 Uma user story está pronta quando o código/notebook corre, os resultados são
