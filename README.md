@@ -1,23 +1,21 @@
-# IAAC — Projetos de deteção de malware
+# IAAC — Projetos
 
-Este repositório contém projetos desenvolvidos no âmbito da unidade curricular
-de Inteligência Artificial e Análise de Dados.
+Projetos desenvolvidos no âmbito da unidade curricular de Inteligência
+Artificial e Análise de Dados.
 
 ## Projetos
 
-### Deteção de ransomware
+- **Deteção de malware** — classificação de ficheiros potencialmente maliciosos.
+  [Branch](https://github.com/josediogocostamoreira-boop/IAAC/tree/feature/malware-detection)
+- **Deteção de ransomware** — classificação de amostras benignas e malware,
+  com foco em ransomware.
+  [Branch](https://github.com/josediogocostamoreira-boop/IAAC/tree/feature/ransomware-detection)
+- **Intrusion Detection** — análise, preparação de dados e modelos para deteção
+  de intrusões.
+  [Branch](https://github.com/josediogocostamoreira-boop/IAAC/tree/intrusion-detection)
+- **Multi-Agent Intrusion Detection** — abordagem multiagente para deteção de
+  intrusões.
+  [Branch](https://github.com/josediogocostamoreira-boop/IAAC/tree/intrusion-detection-dataset)
 
-Branch: [`feature/ransomware-detection`](https://github.com/josediogocostamoreira-boop/IAAC/tree/feature/ransomware-detection)
-
-Analisa características de ficheiros para classificar amostras como benignas
-ou malware, com foco na deteção de ransomware.
-
-### Deteção de malware
-
-Branch: [`feature/malware-detection`](https://github.com/josediogocostamoreira-boop/IAAC/tree/feature/malware-detection)
-
-Utiliza modelos de Machine Learning para identificar ficheiros potencialmente
-maliciosos.
-
-Cada projeto é independente e tem as suas próprias instruções na respetiva
-branch.
+Cada projeto é mantido numa branch própria. A `main` serve apenas como
+introdução ao repositório.
