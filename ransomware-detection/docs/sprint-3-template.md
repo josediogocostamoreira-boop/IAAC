@@ -1,7 +1,7 @@
 # Sprint 3 — Supervised Learning
 
-**Duração prevista:** duas semanas  
-**Datas reais:** preencher com a equipa  
+**Duração prevista:** duas semanas
+**Datas reais:** preencher com a equipa
 **Equipa e papéis:** preencher nomes de Product Owner, Scrum Master e
 elementos responsáveis pelas tarefas.
 
@@ -56,7 +56,7 @@ seleção baseada na validação e avaliação final reservada ao teste.
 
 ## Sprint Review
 
-**Data da review:** a preencher  
+**Data da review:** a preencher
 **Participantes / Product Owner:** a preencher
 
 - **Incremento demonstrado:** benchmark executável em
