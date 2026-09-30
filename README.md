@@ -1,23 +1,27 @@
-# IAAC — Projetos de deteção de malware
+# Intrusion Detection Dataset
 
-Este repositório contém projetos desenvolvidos no âmbito da unidade curricular
-de Inteligência Artificial e Análise de Dados.
+Projeto de deteção de intrusões baseado num modelo Random Forest e num sistema multiagente simples:
 
-## Projetos
+- `AgenteAnalista`: prepara sessões de rede e calcula o diagnóstico;
+- `AgenteRelator`: transforma o diagnóstico num relatório de incidente;
+- `scripts/run_analysis.py`: interface de linha de comando para analisar CSVs.
 
-### Deteção de ransomware
+## Instalação
 
-Branch: [`feature/ransomware-detection`](https://github.com/josediogocostamoreira-boop/IAAC/tree/feature/ransomware-detection)
+```bash
+pip install -r requirements.txt
+```
 
-Analisa características de ficheiros para classificar amostras como benignas
-ou malware, com foco na deteção de ransomware.
+## Utilização
 
-### Deteção de malware
+Analisa todas as sessões de um ficheiro:
 
-Branch: [`feature/malware-detection`](https://github.com/josediogocostamoreira-boop/IAAC/tree/feature/malware-detection)
+```bash
+python scripts/run_analysis.py data/cybersecurity_intrusion_data.csv
+```
 
-Utiliza modelos de Machine Learning para identificar ficheiros potencialmente
-maliciosos.
+Analisa apenas uma sessão e grava o relatório:
 
-Cada projeto é independente e tem as suas próprias instruções na respetiva
-branch.
+```bash
+python scripts/run_analysis.py data/cybersecurity_intrusion_data.csv --linha 0 --saida outputs/relatorio.txt
+```
