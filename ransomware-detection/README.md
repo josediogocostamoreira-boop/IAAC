@@ -1,124 +1,103 @@
 # Deteção de ransomware
 
-Projeto de Machine Learning para distinguir ficheiros benignos de ficheiros
-maliciosos e, numa segunda fase, caracterizar a categoria/família do malware.
+Projeto de classificação de características extraídas de ficheiros para apoiar
+a triagem de malware. O deployment não executa nem analisa ficheiros `.exe`.
 
-## Conteúdo
+## Conteúdo principal
 
-- [`ransom.csv`](./ransom.csv): dataset usado no projeto (21.752 amostras, 77 colunas).
-- [`eda_ransomware_dataset_2024.ipynb`](./eda_ransomware_dataset_2024.ipynb):
-  exploração univariada, bivariada, multivariada e correlações.
-- [`docs/business-understanding.md`](./docs/business-understanding.md):
-  problema, objetivos, stakeholders, riscos e critérios de sucesso.
-- [`docs/data-understanding.md`](./docs/data-understanding.md):
-  inventário e diagnóstico inicial do dataset.
-- [`docs/data-preparation.md`](./docs/data-preparation.md):
-  plano reproduzível de limpeza, encoding e divisão dos dados.
-- [`docs/product-backlog.md`](./docs/product-backlog.md): user stories e
-  critérios de aceitação.
-- [`docs/sprint-backlog.md`](./docs/sprint-backlog.md): distribuição sugerida
-  para o primeiro sprint.
-- [`docs/scrum-templates.md`](./docs/scrum-templates.md): templates de Daily,
-  Sprint Review e Sprint Retrospective.
-- [`docs/sprint-3-template.md`](./docs/sprint-3-template.md): registo preenchido
-  do Sprint 3, com campos reais pendentes claramente assinalados.
-- [`src/data_preprocessing.py`](./src/data_preprocessing.py): preparação
-  leakage-safe e deduplicação por MD5.
-- [`src/train.py`](./src/train.py): baseline Dummy, Logistic Regression,
-  Random Forest e Extra Trees.
-- [`src/predict.py`](./src/predict.py): previsão para novas linhas CSV.
-- [`src/data_preparation_report.py`](./src/data_preparation_report.py): relatório
-  reproduzível do Sprint 2 de Data Preparation.
-- [`src/supervised_learning.py`](./src/supervised_learning.py): comparação de
-  algoritmos de classificação do Module 6.
+- [`ransom.csv`](./ransom.csv): dataset atualmente disponível.
+- [`src/data_preprocessing.py`](./src/data_preprocessing.py): validação,
+  preparação e deduplicação por MD5.
+- [`src/supervised_learning.py`](./src/supervised_learning.py): benchmark
+  scikit-learn, seleção por validação e avaliação num teste reservado.
+- [`src/predict.py`](./src/predict.py): inferência para CSV e para todos os
+  classificadores guardados.
+- [`src/serve.py`](./src/serve.py): API HTTP local.
+- [`src/agent_system.py`](./src/agent_system.py): agentes Python com modelo
+  generativo Hugging Face executado localmente.
+- [`src/run_crewai_agents.py`](./src/run_crewai_agents.py): alternativa
+  multiagente com CrewAI.
+- [`model-deployment.ipynb`](./model-deployment.ipynb): benchmark, inferência
+  de todos os modelos guardados e uso dos agentes.
+- [`docs/diagrams.md`](./docs/diagrams.md): arquitetura multiagente e caso de
+  uso com múltiplos datasets.
+- [`docs/sprint-4-backlog.md`](./docs/sprint-4-backlog.md): backlog SCRUM para
+  integração e deployment.
+- [`docs/sprint-4-template.md`](./docs/sprint-4-template.md): registo das
+  cerimónias reais do Sprint 4.
 
-## Ambiente
-
-No PowerShell:
+## Preparar o ambiente
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
-Abrir o notebook e selecionar o kernel `.venv`. O notebook espera encontrar
-`ransom.csv` na mesma pasta.
+Seleciona o kernel `.venv` ao abrir os notebooks.
 
-## Objetivo técnico
+## SCRUM e CRISP-ML
 
-O primeiro problema é uma classificação binária (`Class`: `Benign` ou
-`Malware`). O problema multiclasse (`Category` ou `Family`) fica como extensão,
-depois de validar o primeiro modelo. O dataset contém 10.876 amostras de cada
-classe, mas possui 7.849 MD5 repetidos; por isso a preparação deve remover
-duplicados por artefacto antes de separar treino e teste.
+O projeto contém backlog e templates SCRUM em `docs/`. O backlog do Sprint 4
+acompanha treino, integração, testes e deployment. Datas, participantes,
+responsáveis, aprovação dos datasets e resultados de reuniões têm de ser
+preenchidos com evidência real pela equipa.
 
-## Treinar os baselines
+As fases CRISP-ML e as decisões existentes estão documentadas em
+`docs/business-understanding.md`, `docs/data-understanding.md`,
+`docs/data-preparation.md` e `docs/supervised-learning.md`. O deployment local e
+as suas limitações estão em `docs/deployment.md`.
 
-```powershell
-python src/train.py --data ransom.csv --output results
-```
-
-O comando cria métricas em `results/model_metrics.csv`, estatísticas de
-preparação em `results/preparation_stats.json`, o schema de features e o
-pipeline do melhor modelo em `results/ransomware_classifier.joblib`.
-
-## Fazer previsões
-
-O modelo recebe um CSV com as mesmas 72 features usadas no treino. Pode usar
-uma linha do dataset como teste:
+## Treinar e guardar os classificadores
 
 ```powershell
-python -c "import pandas as pd; pd.read_csv('ransom.csv', nrows=1).to_csv('sample.csv', index=False)"
-python src/predict.py --input sample.csv --output results/predictions.csv
+python src/supervised_learning.py --data ransom.csv --output results --model-dir models/ransomware
 ```
 
-Ou, para ver a previsão diretamente no terminal:
+O script compara 11 classificadores scikit-learn, escolhe o modelo por recall
+de Malware na validação e usa o teste apenas na avaliação final. Todos os
+pipelines finais são guardados em `models/ransomware/`; o modelo selecionado e
+o schema são usados pela inferência. Para XGBoost, instala-o explicitamente e
+acrescenta `--include-xgboost`.
+
+## Notebook e versão Python
+
+Executa `model-deployment.ipynb` do início ao fim. O notebook chama os mesmos
+módulos Python que a CLI, compara as previsões de todos os classificadores e
+invoca a equipa multiagente selecionada.
 
 ```powershell
-python src/predict.py --input sample.csv
+python -m unittest discover -s tests -v
 ```
 
-O resultado contém `prediction`, `malware_probability` e `confidence`. A
-probabilidade é uma estimativa do modelo e não uma garantia de que o ficheiro
-é seguro. Este comando classifica características já extraídas; ainda não
-extrai automaticamente características de um `.exe`.
-
-## Sprint 2 — Data Preparation
-
-Para executar o novo roadmap:
+## Deployment do classificador
 
 ```powershell
-python src/data_preparation_report.py --data ransom.csv --output results
+python src/serve.py
 ```
 
-O relatório cobre limpeza, missing values, outliers, split estratificado,
-seleção de features constantes/correlacionadas, scaling, candidatos de
-engenharia de features, limites de extração e balanceamento de classes.
+Por omissão, o serviço só escuta em `127.0.0.1:8000`. O endpoint `POST
+/predict` recebe JSON com features pré-extraídas. Consulta `docs/deployment.md`.
 
-## Module 6 — Supervised Learning
+## Sistema multiagente opcional
 
-Compara Logistic Regression, Decision Tree, k-NN, Gaussian/Bernoulli Naive
-Bayes, SVM linear/RBF e ensembles (AdaBoost, Gradient Boosting, Random Forest
-e Extra Trees). XGBoost é opcional:
+Os agentes usam o modelo Hugging Face `HuggingFaceTB/SmolLM2-360M-Instruct`
+localmente. O cache fica em `models/huggingface/`; nenhuma amostra é enviada a
+um serviço externo. A versão CrewAI disponibiliza uma API local compatível com
+OpenAI para usar o mesmo modelo.
+As saídas livres do LLM não são publicadas diretamente: o relatório só aceita
+o token `REVIEW_REQUIRED`, convertido numa nota controlada; qualquer resposta
+fora do formato é marcada como rejeitada e omitida.
 
 ```powershell
-python src/supervised_learning.py --data ransom.csv --output results
+python -m pip install -r requirements-ai.txt
+python src/run_agents.py --input sample.csv --output reports/ransomware.md
+python src/run_crewai_agents.py --input sample.csv --output reports/ransomware-crewai.md
 ```
 
-O split é estratificado em treino/validação/teste; a escolha é feita na
-validação e o teste fica reservado à avaliação final. O roadmap inclui
-regressão, mas o dataset não tem um alvo contínuo adequado para esta tarefa,
-por isso o projeto implementa a parte de classificação.
+## Limites que dependem da equipa
 
-Os resultados ficam em `results/supervised_model_comparison.csv` e
-`results/supervised_learning_report.json`. Na execução atual, Gradient
-Boosting foi selecionado pela validação; obteve recall de Malware de 99,55%
-no teste. XGBoost não foi incluído porque não está instalado.
-
-## Resultado do baseline
-
-Após remover hashes com rótulos conflitantes e deduplicar por MD5, ficaram
-13.886 artefactos únicos. O Random Forest foi selecionado pelo maior recall de
-malware no teste: 99,55%, com ROC-AUC de 99,94%. Estes valores são um baseline
-reprodutível, não uma garantia de desempenho em amostras novas; a validação
-externa e a análise por família continuam necessárias.
+Atualmente só existe `ransom.csv`. Não é possível comprovar aqui a composição
+de 3–4 elementos, a aprovação do docente nem treinar nos datasets dos outros
+elementos sem receber os respetivos ficheiros e rótulos. Esses dados devem ser
+validados e registados pela equipa antes de afirmar cobertura de todos os
+datasets.

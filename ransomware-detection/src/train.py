@@ -25,7 +25,22 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 
-from data_preprocessing import TARGET, build_preprocessor, convert_numeric_like_columns, feature_columns, load_and_deduplicate
+if __package__:
+    from .data_preprocessing import (
+        TARGET,
+        build_preprocessor,
+        convert_numeric_like_columns,
+        feature_columns,
+        load_and_deduplicate,
+    )
+else:
+    from data_preprocessing import (
+        TARGET,
+        build_preprocessor,
+        convert_numeric_like_columns,
+        feature_columns,
+        load_and_deduplicate,
+    )
 
 
 def make_models(preprocessor):

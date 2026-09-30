@@ -1,4 +1,5 @@
 {
+  "dataset": "ransomware",
   "target": "Class",
   "positive_class": "Malware",
   "split": {
@@ -94,6 +95,25 @@
   ],
   "selection_rule": "Highest validation Malware recall, then precision, then F1; the test set is held out until final evaluation.",
   "selected_model": "gradient_boosting",
+  "deployment_artifacts": {
+    "model": "gradient_boosting.joblib",
+    "models_directory": "D:\\Escola\\ISTEC\\IAAC\\IAAC-repo\\ransomware-detection\\models\\ransomware",
+    "model_files": [
+      "logistic_regression.joblib",
+      "decision_tree.joblib",
+      "knn.joblib",
+      "gaussian_naive_bayes.joblib",
+      "bernoulli_naive_bayes.joblib",
+      "linear_svm.joblib",
+      "rbf_svm.joblib",
+      "adaboost.joblib",
+      "gradient_boosting.joblib",
+      "random_forest.joblib",
+      "extra_trees.joblib"
+    ],
+    "feature_schema": "feature_schema.json",
+    "fit_data": "train + validation"
+  },
   "final_test_metrics": {
     "accuracy": 0.9913606911447084,
     "precision_malware": 0.9867256637168141,

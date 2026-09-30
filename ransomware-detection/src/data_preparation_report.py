@@ -15,12 +15,20 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from data_preprocessing import (
-    TARGET,
-    convert_numeric_like_columns,
-    feature_columns,
-    load_and_deduplicate,
-)
+if __package__:
+    from .data_preprocessing import (
+        TARGET,
+        convert_numeric_like_columns,
+        feature_columns,
+        load_and_deduplicate,
+    )
+else:
+    from data_preprocessing import (
+        TARGET,
+        convert_numeric_like_columns,
+        feature_columns,
+        load_and_deduplicate,
+    )
 
 
 def outlier_summary(frame: pd.DataFrame, numeric_columns: list[str]) -> pd.DataFrame:

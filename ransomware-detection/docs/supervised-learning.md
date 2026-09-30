@@ -2,77 +2,53 @@
 
 ## Enquadramento
 
-O objetivo do projeto é prever rótulos de malware, pelo que a tarefa adequada
-é **classificação supervisionada**. O CSV disponibiliza rótulos categóricos
-`Class`, `Category` e `Family`; não contém uma variável resposta contínua
-justificada para regressão. Por isso, Linear Regression e regressão de árvores
-não são treinadas artificialmente neste projeto.
+O objetivo é classificar a coluna `Class` como `Benign` ou `Malware`. `Category`
+e `Family` são rótulos categóricos e podem ser tratados como tarefas
+multiclasse futuras; não existe variável contínua adequada para regressão.
 
-## Algoritmos implementados
+## Classificadores
 
-O script [`supervised_learning.py`](../src/supervised_learning.py) compara:
+`src/supervised_learning.py` compara Logistic Regression, Decision Tree,
+k-Nearest Neighbors, Gaussian e Bernoulli Naive Bayes, SVM linear/RBF,
+AdaBoost, Gradient Boosting, Random Forest e Extra Trees. XGBoost é opcional.
+Todos usam pipelines scikit-learn com imputação, encoding e escala aprendidos
+dentro do treino.
 
-- Logistic Regression;
-- Decision Tree Classifier;
-- k-Nearest Neighbors;
-- Gaussian Naive Bayes;
-- Bernoulli Naive Bayes;
-- SVM linear e RBF;
-- AdaBoost;
-- Gradient Boosting;
-- Random Forest;
-- Extra Trees;
-- XGBoost, opcional.
+## Seleção e avaliação
 
-Os pipelines imputam, codificam e escalam features a partir do conjunto de
-treino. A divisão é estratificada em treino, validação e teste. O modelo é
-escolhido pela recall de Malware na validação (com precision e F1 como
-desempate); o teste só é usado para a avaliação final.
-
-## Métricas
-
-O relatório contém accuracy, precision, recall, F1, ROC-AUC e PR-AUC. Para
-SVM, os scores de decisão não são probabilidades calibradas; por isso estão
-identificados como `decision_function`.
+A divisão é estratificada: 60% treino, 20% validação e 20% teste. A seleção
+usa recall de Malware na validação, com precision e F1 como desempate. O teste
+fica reservado à avaliação final. O vencedor e todos os outros pipelines são
+ajustados novamente com treino e validação antes de serem guardados.
 
 ## Execução
 
 ```powershell
-python src/supervised_learning.py --data ransom.csv --output results
+python src/supervised_learning.py --data ransom.csv --output results --model-dir models/ransomware
 ```
 
-Para acrescentar XGBoost (dependência opcional):
+Para incluir XGBoost:
 
 ```powershell
 python -m pip install xgboost
-python src/supervised_learning.py --data ransom.csv --output results --include-xgboost
+python src/supervised_learning.py --data ransom.csv --output results --model-dir models/ransomware --include-xgboost
 ```
 
-Artefactos produzidos:
+## Artefactos
 
-- `supervised_model_comparison.csv`: comparação dos modelos na validação;
-- `supervised_learning_report.json`: split, algoritmo escolhido e métricas
-  finais no teste;
-- `supervised_confusion_matrix.png`: matriz de confusão do modelo escolhido
-  no conjunto de teste.
+- `results/supervised_model_comparison.csv`: resultados de validação;
+- `results/supervised_learning_report.json`: split, modelo selecionado e
+  métricas finais do teste;
+- `results/supervised_confusion_matrix.png`: matriz de confusão no teste;
+- `models/ransomware/*.joblib`: pipelines dos classificadores;
+- `models/ransomware/feature_schema.json`: nomes/ordem das features.
 
-Este benchmark não altera o classificador existente em
-`results/ransomware_classifier.joblib`.
+`src/predict.py`, `src/serve.py` e os agentes resolvem o modelo selecionado a
+partir do relatório e usam o schema guardado com os pipelines. Scores SVM são
+`decision_function`, não probabilidades calibradas.
 
-## Execução no dataset atual
+## Limitações
 
-Foram comparados 11 classificadores (XGBoost não estava instalado). A seleção
-por recall na validação escolheu **Gradient Boosting**. No teste intocado,
-obteve:
-
-| Métrica | Resultado |
-|---|---:|
-| Accuracy | 99,14% |
-| Precision de Malware | 98,67% |
-| Recall de Malware | 99,55% |
-| F1 de Malware | 99,11% |
-| ROC-AUC | 99,87% |
-| PR-AUC | 99,87% |
-
-Estes números são uma avaliação holdout do dataset disponível e não garantem
-o mesmo desempenho em famílias ou amostras futuras.
+Os resultados do holdout do dataset atual não demonstram generalização a outras
+famílias, fontes ou datasets. Os dados dos restantes elementos do grupo ainda
+não estão disponíveis nesta pasta.

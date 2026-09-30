@@ -6,3 +6,5 @@ __pycache__/
 .ipynb_checkpoints/
 executed_eda.ipynb
 results/predictions*.csv
+models/**/*.joblib
+models/huggingface/

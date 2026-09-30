@@ -36,12 +36,20 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-from data_preprocessing import (
-    TARGET,
-    convert_numeric_like_columns,
-    feature_columns,
-    load_and_deduplicate,
-)
+if __package__:
+    from .data_preprocessing import (
+        TARGET,
+        convert_numeric_like_columns,
+        feature_columns,
+        load_and_deduplicate,
+    )
+else:
+    from data_preprocessing import (
+        TARGET,
+        convert_numeric_like_columns,
+        feature_columns,
+        load_and_deduplicate,
+    )
 
 RANDOM_STATE = 42
 
@@ -199,8 +207,13 @@ def train_and_compare(
     data_path: Path,
     output_dir: Path,
     include_xgboost: bool = False,
+    model_dir: Path = Path("models/ransomware"),
+    dataset_name: str = "ransomware",
 ) -> pd.DataFrame:
+    if not dataset_name.strip():
+        raise ValueError("Dataset name must not be empty.")
     output_dir.mkdir(parents=True, exist_ok=True)
+    model_dir.mkdir(parents=True, exist_ok=True)
     frame, preparation_stats = load_and_deduplicate(data_path)
     frame = convert_numeric_like_columns(frame)
     columns = feature_columns(frame)
@@ -257,8 +270,16 @@ def train_and_compare(
     )
     results.to_csv(output_dir / "supervised_model_comparison.csv", index=False)
     winner_name = str(results.iloc[0]["model"])
+    model_files = []
+    for name, model in fitted_models.items():
+        model.fit(train_validation_x, train_validation_y)
+        model_path = model_dir / f"{name}.joblib"
+        joblib.dump(model, model_path)
+        model_files.append(model_path.name)
     winner = fitted_models[winner_name]
-    winner.fit(train_validation_x, train_validation_y)
+    (model_dir / "feature_schema.json").write_text(
+        json.dumps(columns, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     test_predictions = winner.predict(test_x)
     test_scores = malware_scores(winner, test_x)
     final_test_metrics = {
@@ -276,6 +297,7 @@ def train_and_compare(
         "pr_auc": average_precision_score(test_y == "Malware", test_scores),
     }
     report = {
+        "dataset": dataset_name,
         "target": TARGET,
         "positive_class": "Malware",
         "split": {
@@ -292,6 +314,13 @@ def train_and_compare(
         "features": columns,
         "selection_rule": "Highest validation Malware recall, then precision, then F1; the test set is held out until final evaluation.",
         "selected_model": winner_name,
+        "deployment_artifacts": {
+            "model": f"{winner_name}.joblib",
+            "models_directory": str(model_dir),
+            "model_files": model_files,
+            "feature_schema": "feature_schema.json",
+            "fit_data": "train + validation",
+        },
         "final_test_metrics": final_test_metrics,
         "regression_scope": (
             "Not trained: this dataset has categorical labels (Class, Category, Family) "
@@ -318,12 +347,22 @@ def main() -> None:
     parser.add_argument("--data", type=Path, default=Path("ransom.csv"))
     parser.add_argument("--output", type=Path, default=Path("results"))
     parser.add_argument(
+        "--model-dir", type=Path, default=Path("models/ransomware")
+    )
+    parser.add_argument("--dataset-name", default="ransomware")
+    parser.add_argument(
         "--include-xgboost",
         action="store_true",
         help="Include XGBoost if installed; it is an optional dependency.",
     )
     args = parser.parse_args()
-    results = train_and_compare(args.data, args.output, args.include_xgboost)
+    results = train_and_compare(
+        args.data,
+        args.output,
+        args.include_xgboost,
+        args.model_dir,
+        args.dataset_name,
+    )
     print(results.to_string(index=False))
 
 

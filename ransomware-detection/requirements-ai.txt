@@ -1,0 +1,4 @@
+-r requirements.txt
+transformers>=4.45,<6
+torch>=2.4
+crewai>=1.0,<2
