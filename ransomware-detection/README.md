@@ -20,6 +20,8 @@ maliciosos e, numa segunda fase, caracterizar a categoria/família do malware.
   para o primeiro sprint.
 - [`docs/scrum-templates.md`](./docs/scrum-templates.md): templates de Daily,
   Sprint Review e Sprint Retrospective.
+- [`docs/sprint-3-template.md`](./docs/sprint-3-template.md): registo preenchido
+  do Sprint 3, com campos reais pendentes claramente assinalados.
 - [`src/data_preprocessing.py`](./src/data_preprocessing.py): preparação
   leakage-safe e deduplicação por MD5.
 - [`src/train.py`](./src/train.py): baseline Dummy, Logistic Regression,
