@@ -16,12 +16,14 @@ Prioridade: **P0** é obrigatório, **P1** importante e **P2** extensão.
 | US-10 | Como analista, quero explicar uma previsão. | P2 | Importância de features ou explicação local disponível. | 5 |
 | US-11 | Como equipa, queremos classificar a categoria de malware. | P2 | Modelo multiclasse e macro-F1 reportados. | 5 |
 | US-12 | Como equipa, queremos um relatório final reproduzível. | P0 | Método, resultados, riscos e próximos passos revistos. | 3 |
+| US-13 | Como equipa, queremos comparar algoritmos de classificação supervisionada. | P1 | Modelos do Module 6 comparados em validação e avaliados uma vez no teste. | 8 |
 
 ## Estado no fim do Sprint 2
 
 Concluídas: US-01 a US-09 e US-12, no âmbito de Data Understanding, EDA,
 Data Preparation e baseline. US-10 e US-11 permanecem no backlog para
-explicabilidade e classificação multiclasse.
+explicabilidade e classificação multiclasse. US-13 acompanha o Module 6 do
+roadmap atualizado.
 
 ## Definição de pronto
 

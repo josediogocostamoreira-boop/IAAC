@@ -27,6 +27,8 @@ maliciosos e, numa segunda fase, caracterizar a categoria/família do malware.
 - [`src/predict.py`](./src/predict.py): previsão para novas linhas CSV.
 - [`src/data_preparation_report.py`](./src/data_preparation_report.py): relatório
   reproduzível do Sprint 2 de Data Preparation.
+- [`src/supervised_learning.py`](./src/supervised_learning.py): comparação de
+  algoritmos de classificação do Module 6.
 
 ## Ambiente
 
@@ -90,6 +92,26 @@ python src/data_preparation_report.py --data ransom.csv --output results
 O relatório cobre limpeza, missing values, outliers, split estratificado,
 seleção de features constantes/correlacionadas, scaling, candidatos de
 engenharia de features, limites de extração e balanceamento de classes.
+
+## Module 6 — Supervised Learning
+
+Compara Logistic Regression, Decision Tree, k-NN, Gaussian/Bernoulli Naive
+Bayes, SVM linear/RBF e ensembles (AdaBoost, Gradient Boosting, Random Forest
+e Extra Trees). XGBoost é opcional:
+
+```powershell
+python src/supervised_learning.py --data ransom.csv --output results
+```
+
+O split é estratificado em treino/validação/teste; a escolha é feita na
+validação e o teste fica reservado à avaliação final. O roadmap inclui
+regressão, mas o dataset não tem um alvo contínuo adequado para esta tarefa,
+por isso o projeto implementa a parte de classificação.
+
+Os resultados ficam em `results/supervised_model_comparison.csv` e
+`results/supervised_learning_report.json`. Na execução atual, Gradient
+Boosting foi selecionado pela validação; obteve recall de Malware de 99,55%
+no teste. XGBoost não foi incluído porque não está instalado.
 
 ## Resultado do baseline
 
