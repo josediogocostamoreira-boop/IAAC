@@ -59,6 +59,20 @@ pipelines finais são guardados em `models/ransomware/`; o modelo selecionado e
 o schema são usados pela inferência. Para XGBoost, instala-o explicitamente e
 acrescenta `--include-xgboost`.
 
+## Aplicação gráfica Windows
+
+Para criar uma aplicação gráfica com botões para instalar dependências, treinar,
+fazer previsões e iniciar a API:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build_windows.ps1
+.\dist\RansomwareTrainer.exe
+```
+
+O executável deve ser usado com `ransom.csv`, `models/` e `results/` na pasta
+do projeto. A aplicação não analisa diretamente ficheiros `.exe`; recebe CSVs
+com as features já extraídas.
+
 ## Notebook e versão Python
 
 Executa `model-deployment.ipynb` do início ao fim. O notebook chama os mesmos

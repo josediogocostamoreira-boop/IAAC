@@ -237,6 +237,7 @@ def train_and_compare(
     records = []
     fitted_models = {}
     for name, model in make_models(train_x, include_xgboost).items():
+        print(f"A treinar {name}...", flush=True)
         model.fit(train_x, train_y)
         fitted_models[name] = model
         predictions = model.predict(validation_x)
@@ -263,6 +264,7 @@ def train_and_compare(
                 ),
             }
         )
+        print(f"Concluído {name}.", flush=True)
 
     results = pd.DataFrame(records).sort_values(
         ["recall_malware", "precision_malware", "f1_malware"],
@@ -272,10 +274,12 @@ def train_and_compare(
     winner_name = str(results.iloc[0]["model"])
     model_files = []
     for name, model in fitted_models.items():
+        print(f"A guardar {name}...", flush=True)
         model.fit(train_validation_x, train_validation_y)
         model_path = model_dir / f"{name}.joblib"
         joblib.dump(model, model_path)
         model_files.append(model_path.name)
+        print(f"Guardado {model_path}.", flush=True)
     winner = fitted_models[winner_name]
     (model_dir / "feature_schema.json").write_text(
         json.dumps(columns, indent=2, ensure_ascii=False), encoding="utf-8"

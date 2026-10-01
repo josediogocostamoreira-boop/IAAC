@@ -8,3 +8,6 @@ executed_eda.ipynb
 results/predictions*.csv
 models/**/*.joblib
 models/huggingface/
+build/
+dist/
+*.spec
