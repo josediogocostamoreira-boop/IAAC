@@ -12,6 +12,17 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+COLORS = {
+    "background": "#17191f",
+    "surface": "#22252e",
+    "surface_hover": "#303440",
+    "text": "#e6e8ef",
+    "muted": "#aeb4c2",
+    "accent": "#6ea8fe",
+    "border": "#3b404d",
+    "selection": "#355f9c",
+}
+
 
 def find_project_root() -> Path:
     candidates = [
@@ -35,11 +46,58 @@ class RansomwareApp(tk.Tk):
         self.title("Deteção de ransomware")
         self.geometry("780x520")
         self.minsize(650, 420)
+        self.configure(background=COLORS["background"])
         self.project_root = find_project_root()
         self.output_queue: queue.Queue[str] = queue.Queue()
         self.process: subprocess.Popen[str] | None = None
+        self._configure_dark_theme()
         self._build_ui()
         self.after(100, self._drain_output)
+
+    def _configure_dark_theme(self) -> None:
+        style = ttk.Style(self)
+        style.theme_use("clam")
+        style.configure(
+            ".",
+            background=COLORS["background"],
+            foreground=COLORS["text"],
+            fieldbackground=COLORS["surface"],
+            bordercolor=COLORS["border"],
+            troughcolor=COLORS["surface"],
+            focuscolor=COLORS["accent"],
+            font=("Segoe UI", 9),
+        )
+        style.configure("TFrame", background=COLORS["background"])
+        style.configure(
+            "TLabel",
+            background=COLORS["background"],
+            foreground=COLORS["text"],
+        )
+        style.configure(
+            "TButton",
+            background=COLORS["surface"],
+            foreground=COLORS["text"],
+            borderwidth=1,
+            padding=(10, 7),
+            relief="flat",
+        )
+        style.map(
+            "TButton",
+            background=[
+                ("disabled", COLORS["surface"]),
+                ("pressed", COLORS["selection"]),
+                ("active", COLORS["surface_hover"]),
+            ],
+            foreground=[("disabled", COLORS["muted"]), ("!disabled", COLORS["text"])],
+            bordercolor=[("focus", COLORS["accent"])],
+        )
+        style.configure(
+            "TScrollbar",
+            background=COLORS["surface_hover"],
+            troughcolor=COLORS["background"],
+            bordercolor=COLORS["background"],
+            arrowcolor=COLORS["text"],
+        )
 
     def _build_ui(self) -> None:
         frame = ttk.Frame(self, padding=16)
@@ -69,12 +127,46 @@ class RansomwareApp(tk.Tk):
             actions, text="3. Fazer previsão", command=self.predict
         )
         self.predict_button.pack(side=tk.LEFT, padx=(0, 8))
+        self.extract_button = ttk.Button(
+            actions,
+            text="Extrair .exe/.zip",
+            command=self.extract_features,
+        )
+        self.extract_button.pack(side=tk.LEFT, padx=(0, 8))
         self.api_button = ttk.Button(
             actions, text="Iniciar API", command=self.start_api
         )
         self.api_button.pack(side=tk.LEFT)
 
-        self.log = tk.Text(frame, height=20, state=tk.DISABLED, wrap=tk.WORD)
+        ttk.Label(
+            frame,
+            text=(
+                "A extração é estática e não executa o ficheiro. "
+                "Dados comportamentais (rede/processos/registo) não podem "
+                "ser extraídos e a previsão pode ser menos fiável."
+            ),
+            wraplength=740,
+        ).pack(anchor=tk.W, pady=(0, 8))
+
+        self.log = tk.Text(
+            frame,
+            height=20,
+            state=tk.DISABLED,
+            wrap=tk.WORD,
+            background=COLORS["surface"],
+            foreground=COLORS["text"],
+            insertbackground=COLORS["text"],
+            selectbackground=COLORS["selection"],
+            selectforeground=COLORS["text"],
+            relief=tk.FLAT,
+            borderwidth=0,
+            highlightthickness=1,
+            highlightbackground=COLORS["border"],
+            highlightcolor=COLORS["accent"],
+            padx=10,
+            pady=8,
+            font=("Cascadia Mono", 9),
+        )
         self.log.pack(fill=tk.BOTH, expand=True)
         scrollbar = ttk.Scrollbar(frame, command=self.log.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -141,6 +233,7 @@ class RansomwareApp(tk.Tk):
             self.install_button,
             self.train_button,
             self.predict_button,
+            self.extract_button,
             self.api_button,
         ):
             button.configure(state=state)
@@ -227,6 +320,46 @@ class RansomwareApp(tk.Tk):
                 "--output",
                 output_path,
             ],
+        )
+
+    def extract_features(self) -> None:
+        input_path = filedialog.askopenfilename(
+            title="Selecionar executável ou arquivo ZIP",
+            initialdir=self.project_root,
+            filetypes=[
+                ("Executável ou ZIP", "*.exe *.zip"),
+                ("Executável Windows", "*.exe"),
+                ("Arquivo ZIP", "*.zip"),
+            ],
+        )
+        if not input_path:
+            return
+        default_name = f"{Path(input_path).stem}_features.csv"
+        output_path = filedialog.asksaveasfilename(
+            title="Guardar features extraídas",
+            initialdir=self.project_root / "results",
+            initialfile=default_name,
+            defaultextension=".csv",
+            filetypes=[("CSV", "*.csv")],
+        )
+        if not output_path:
+            return
+        self._run_async(
+            "Extrair features estáticas",
+            [
+                self._python(),
+                "-u",
+                "src/extract_features.py",
+                "--input",
+                input_path,
+                "--output",
+                output_path,
+                "--schema",
+                "models/ransomware/feature_schema.json",
+            ],
+        )
+        self._write(
+            "Depois da extração terminar, usa «Fazer previsão» e seleciona o CSV gerado."
         )
 
     def start_api(self) -> None:

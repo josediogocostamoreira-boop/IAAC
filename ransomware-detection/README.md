@@ -1,7 +1,7 @@
 # Deteção de ransomware
 
 Projeto de classificação de características extraídas de ficheiros para apoiar
-a triagem de malware. O deployment não executa nem analisa ficheiros `.exe`.
+a triagem de malware. O projeto não executa ficheiros `.exe`.
 
 ## Conteúdo principal
 
@@ -12,6 +12,8 @@ a triagem de malware. O deployment não executa nem analisa ficheiros `.exe`.
   scikit-learn, seleção por validação e avaliação num teste reservado.
 - [`src/predict.py`](./src/predict.py): inferência para CSV e para todos os
   classificadores guardados.
+- [`src/extract_features.py`](./src/extract_features.py): extração estática de
+  features PE de executáveis `.exe` e de `.exe` dentro de arquivos ZIP.
 - [`src/serve.py`](./src/serve.py): API HTTP local.
 - [`src/agent_system.py`](./src/agent_system.py): agentes Python com modelo
   generativo Hugging Face executado localmente.
@@ -70,8 +72,15 @@ powershell -ExecutionPolicy Bypass -File build_windows.ps1
 ```
 
 O executável deve ser usado com `ransom.csv`, `models/` e `results/` na pasta
-do projeto. A aplicação não analisa diretamente ficheiros `.exe`; recebe CSVs
-com as features já extraídas.
+do projeto. O botão **Extrair .exe/.zip** cria um CSV de features PE estáticas
+para um executável `.exe` ou para os `.exe` contidos num arquivo ZIP. Depois,
+usa **Fazer previsão** e escolhe o CSV criado.
+
+A extração não executa os ficheiros. As features comportamentais (atividade de
+rede, processos e registo) não estão disponíveis na análise estática; essas
+colunas ficam em falta e são imputadas pelo modelo, pelo que a previsão pode
+ser menos fiável do que nos dados originais. Outros formatos, como PDF, Office
+ou imagens, não são suportados.
 
 ## Notebook e versão Python
 

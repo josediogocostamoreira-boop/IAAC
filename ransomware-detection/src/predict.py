@@ -91,6 +91,8 @@ def predict_frame(
         raise ValueError(
             "O modelo carregado não disponibiliza probability nem decision_function."
         )
+    if "source_file" in frame:
+        result.insert(0, "source_file", frame["source_file"].values)
     if "md5" in frame:
         result.insert(0, "md5", frame["md5"].values)
     return result

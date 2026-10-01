@@ -54,12 +54,22 @@ class PredictionFrameTests(unittest.TestCase):
         self.model = StubModel()
 
     def test_predict_frame_returns_predictions_and_hash(self) -> None:
-        features = pd.DataFrame({"feature": [1, -1], "md5": ["a", "b"]})
+        features = pd.DataFrame(
+            {
+                "feature": [1, -1],
+                "md5": ["a", "b"],
+                "source_file": ["first.exe", "bundle.zip!second.exe"],
+            }
+        )
 
         result = predict_frame(self.model, ["feature"], features)
 
         self.assertEqual(result["prediction"].tolist(), ["Malware", "Benign"])
         self.assertEqual(result["md5"].tolist(), ["a", "b"])
+        self.assertEqual(
+            result["source_file"].tolist(),
+            ["first.exe", "bundle.zip!second.exe"],
+        )
         self.assertEqual(result["confidence"].tolist(), ["alto", "alto"])
 
     def test_predict_frame_rejects_missing_features(self) -> None:
