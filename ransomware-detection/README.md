@@ -75,7 +75,7 @@ inferência. Para XGBoost, instala-o explicitamente e acrescenta
 
 Para criar uma aplicação gráfica com opções para selecionar o CSV, executar EDA,
 gerar o relatório de preparação, treinar/afinar modelos, consultar métricas e
-gráficos, fazer previsões e iniciar a API:
+gráficos, fazer previsões, iniciar a API e gerir o bot Telegram:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File build_windows.ps1
@@ -92,6 +92,11 @@ opcional. **Ver avaliação e gráficos** mostra o relatório do teste reservado
 a comparação dos modelos. Os botões de artefactos abrem os resultados de EDA e
 preparação. Se o executável não encontrar `.venv`, **Instalar dependências**
 cria esse ambiente com Python 3.13 e instala os requisitos do projeto.
+Para usar o bot dentro da janela, seleciona **Instalar dependências Telegram**,
+depois **Iniciar bot Telegram**. A janela pede o token do BotFather num campo
+oculto e permite restringir o acesso a IDs Telegram. O token só é passado ao
+processo filho; não é guardado em ficheiro nem apresentado no registo. Mantém
+a aplicação aberta enquanto usas o bot. O botão correspondente permite pará-lo.
 
 O botão **Extrair .exe/.zip** cria um CSV de features PE estáticas para um
 executável `.exe` ou para os `.exe` contidos num arquivo ZIP. Depois, usa
@@ -140,6 +145,13 @@ python -m pip install -r requirements-ai.txt
 python src/run_agents.py --input sample.csv --output reports/ransomware.md
 python src/run_crewai_agents.py --input sample.csv --output reports/ransomware-crewai.md
 ```
+
+## Bot Telegram
+
+O bot opcional permite conversar localmente com o SmolLM2 e enviar `.exe`/`.zip`
+para análise estática pelo classificador treinado. Instalação, configuração
+segura do token do BotFather e utilização estão em
+[`docs/telegram-bot.md`](./docs/telegram-bot.md).
 
 ## Limites que dependem da equipa
 

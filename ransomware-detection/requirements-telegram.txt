@@ -1,0 +1,4 @@
+-r requirements.txt
+python-telegram-bot>=21,<23
+transformers>=4.45,<6
+torch>=2.4

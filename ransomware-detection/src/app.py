@@ -52,6 +52,7 @@ class RansomwareApp(tk.Tk):
         self.dataset_path = self.project_root / "ransom.csv"
         self.output_queue: queue.Queue[str] = queue.Queue()
         self.process: subprocess.Popen[str] | None = None
+        self.telegram_process: subprocess.Popen[str] | None = None
         self.cv_folds = tk.IntVar(value=3)
         self.include_xgboost = tk.BooleanVar(value=False)
         self._configure_dark_theme()
@@ -146,6 +147,12 @@ class RansomwareApp(tk.Tk):
             command=self.install_dependencies,
         )
         self.install_button.pack(side=tk.LEFT, padx=(0, 8))
+        self.install_telegram_button = ttk.Button(
+            actions,
+            text="Instalar dependências Telegram",
+            command=self.install_telegram_dependencies,
+        )
+        self.install_telegram_button.pack(side=tk.LEFT, padx=(0, 8))
         self.train_button = ttk.Button(
             actions, text="Treinar e avaliar modelos", command=self.train
         )
@@ -164,6 +171,12 @@ class RansomwareApp(tk.Tk):
             actions, text="Iniciar API", command=self.start_api
         )
         self.api_button.pack(side=tk.LEFT)
+        self.telegram_button = ttk.Button(
+            actions,
+            text="Iniciar bot Telegram",
+            command=self.toggle_telegram_bot,
+        )
+        self.telegram_button.pack(side=tk.LEFT, padx=(8, 0))
 
         roadmap_actions = ttk.Frame(frame)
         roadmap_actions.pack(fill=tk.X, pady=(0, 10))
@@ -258,6 +271,7 @@ class RansomwareApp(tk.Tk):
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.log.configure(yscrollcommand=scrollbar.set)
         self._write("Pronto. Começa por instalar as dependências.")
+        self.protocol("WM_DELETE_WINDOW", self._close_application)
 
     def _write(self, text: str) -> None:
         self.log.configure(state=tk.NORMAL)
@@ -317,6 +331,11 @@ class RansomwareApp(tk.Tk):
                 message = self.output_queue.get_nowait()
                 if message == "__ENABLE_BUTTONS__":
                     self._set_buttons(True)
+                elif message == "__TELEGRAM_STOPPED__":
+                    self.telegram_process = None
+                    self.telegram_button.configure(
+                        text="Iniciar bot Telegram", state=tk.NORMAL
+                    )
                 else:
                     self._write(message)
         except queue.Empty:
@@ -327,6 +346,7 @@ class RansomwareApp(tk.Tk):
         state = tk.NORMAL if enabled else tk.DISABLED
         for button in (
             self.install_button,
+            self.install_telegram_button,
             self.train_button,
             self.predict_button,
             self.extract_button,
@@ -338,7 +358,10 @@ class RansomwareApp(tk.Tk):
             self.preparation_report_button,
             self.cv_spinbox,
             self.xgboost_checkbox,
+            self.telegram_button,
         ):
+            if button is self.telegram_button and self.telegram_process is not None:
+                continue
             button.configure(state=state)
 
     def _python_command(self) -> list[str]:
@@ -383,6 +406,215 @@ class RansomwareApp(tk.Tk):
             python_command + ["-m", "pip", "install", "-r", "requirements.txt"]
         )
         self._run_sequence_async("Instalar dependências", commands)
+
+    def install_telegram_dependencies(self) -> None:
+        try:
+            python_command = self._python_command()
+        except FileNotFoundError as exc:
+            messagebox.showerror("Python necessário", str(exc))
+            return
+        venv_python = self.project_root / ".venv" / "Scripts" / "python.exe"
+        commands: list[list[str]] = []
+        if getattr(sys, "frozen", False) and not venv_python.is_file():
+            commands.append(python_command + ["-m", "venv", ".venv"])
+            python_command = [str(venv_python)]
+        requirements = self.project_root / "requirements-telegram.txt"
+        if not requirements.is_file():
+            messagebox.showerror(
+                "Ficheiro em falta",
+                f"Não foi encontrado o ficheiro de dependências:\n{requirements}",
+            )
+            return
+        commands.append(
+            python_command
+            + [
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                "requirements-telegram.txt",
+            ]
+        )
+        self._run_sequence_async("Instalar dependências Telegram", commands)
+
+    def _prompt_telegram_settings(self) -> tuple[str, str] | None:
+        window = tk.Toplevel(self)
+        window.title("Iniciar bot Telegram")
+        window.configure(background=COLORS["background"])
+        window.resizable(False, False)
+        window.transient(self)
+        window.grab_set()
+
+        content = ttk.Frame(window, padding=16)
+        content.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(
+            content,
+            text="Token do @BotFather",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor=tk.W)
+        ttk.Label(
+            content,
+            text="O token fica oculto e só é passado ao processo local do bot.",
+            wraplength=440,
+        ).pack(anchor=tk.W, pady=(2, 8))
+        token_entry = ttk.Entry(content, width=60, show="*")
+        token_entry.pack(fill=tk.X)
+
+        ttk.Label(
+            content,
+            text="IDs Telegram autorizados (recomendado; separados por vírgulas)",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor=tk.W, pady=(14, 0))
+        ttk.Label(
+            content,
+            text="Podes obter o teu ID com @userinfobot. Deixar vazio permite acesso a qualquer pessoa.",
+            wraplength=440,
+        ).pack(anchor=tk.W, pady=(2, 8))
+        allowed_ids_entry = ttk.Entry(content, width=60)
+        allowed_ids_entry.pack(fill=tk.X)
+
+        result: tuple[str, str] | None = None
+
+        def start() -> None:
+            nonlocal result
+            token = token_entry.get().strip()
+            bot_id, separator, secret = token.partition(":")
+            if (
+                not separator
+                or not bot_id.isdecimal()
+                or not secret
+                or any(character.isspace() for character in token)
+            ):
+                messagebox.showerror(
+                    "Token inválido",
+                    "Cola o token completo fornecido pelo @BotFather, incluindo "
+                    "os números e os dois-pontos.",
+                    parent=window,
+                )
+                return
+            allowed_ids = allowed_ids_entry.get().strip()
+            if allowed_ids:
+                try:
+                    parsed_ids = [int(value.strip()) for value in allowed_ids.split(",")]
+                except ValueError:
+                    messagebox.showerror(
+                        "ID inválido",
+                        "Usa um ou mais IDs numéricos separados por vírgulas.",
+                        parent=window,
+                    )
+                    return
+                if any(value <= 0 for value in parsed_ids):
+                    messagebox.showerror(
+                        "ID inválido",
+                        "Os IDs Telegram têm de ser números positivos.",
+                        parent=window,
+                    )
+                    return
+            elif not messagebox.askyesno(
+                "Bot sem restrição de utilizadores",
+                "Sem uma lista de IDs, qualquer pessoa que encontre o bot "
+                "pode usá-lo e enviar ficheiros. Queres continuar?",
+                parent=window,
+            ):
+                return
+            result = (token, allowed_ids)
+            window.destroy()
+
+        buttons = ttk.Frame(content)
+        buttons.pack(fill=tk.X, pady=(16, 0))
+        ttk.Button(buttons, text="Iniciar", command=start).pack(
+            side=tk.RIGHT, padx=(8, 0)
+        )
+        ttk.Button(
+            buttons, text="Cancelar", command=window.destroy
+        ).pack(side=tk.RIGHT)
+        token_entry.focus_set()
+        self.wait_window(window)
+        return result
+
+    def toggle_telegram_bot(self) -> None:
+        if self.telegram_process is not None:
+            if self.telegram_process.poll() is None:
+                self.telegram_process.terminate()
+                self._write("A parar o bot Telegram...")
+                self.telegram_button.configure(state=tk.DISABLED)
+                return
+            self.telegram_process = None
+            self.telegram_button.configure(text="Iniciar bot Telegram")
+
+        if self.process is not None and self.process.poll() is None:
+            messagebox.showwarning(
+                "Operação em curso",
+                "Aguarda a operação atual terminar antes de iniciar o bot.",
+            )
+            return
+        settings = self._prompt_telegram_settings()
+        if settings is None:
+            return
+        token, allowed_ids = settings
+        try:
+            python_command = self._python_command()
+        except FileNotFoundError as exc:
+            messagebox.showerror("Python necessário", str(exc))
+            return
+
+        environment = {**os.environ, "PYTHONUNBUFFERED": "1"}
+        environment["TELEGRAM_BOT_TOKEN"] = token
+        if allowed_ids:
+            environment["TELEGRAM_ALLOWED_USER_IDS"] = allowed_ids
+        else:
+            environment.pop("TELEGRAM_ALLOWED_USER_IDS", None)
+        del token
+        try:
+            self.telegram_process = subprocess.Popen(
+                python_command + ["-u", "src/telegram_bot.py"],
+                cwd=self.project_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                env=environment,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except OSError as exc:
+            self.telegram_process = None
+            messagebox.showerror(
+                "Falha ao iniciar o bot", f"Não foi possível iniciar o bot:\n{exc}"
+            )
+            return
+        finally:
+            environment.pop("TELEGRAM_BOT_TOKEN", None)
+            del environment
+
+        self.telegram_button.configure(
+            text="Parar bot Telegram", state=tk.NORMAL
+        )
+        self._write(
+            "Bot Telegram a iniciar. Mantém a aplicação aberta; "
+            "o token não é escrito no registo."
+        )
+
+        def read_telegram_output(process: subprocess.Popen[str]) -> None:
+            if process.stdout is not None:
+                for line in process.stdout:
+                    self.output_queue.put(line)
+            return_code = process.wait()
+            self.output_queue.put(
+                f"Bot Telegram terminado (código {return_code}).\n"
+            )
+            self.output_queue.put("__TELEGRAM_STOPPED__")
+
+        threading.Thread(
+            target=read_telegram_output,
+            args=(self.telegram_process,),
+            daemon=True,
+        ).start()
+
+    def _close_application(self) -> None:
+        process = self.telegram_process
+        if process is not None and process.poll() is None:
+            process.terminate()
+        self.destroy()
 
     def train(self) -> None:
         try:
