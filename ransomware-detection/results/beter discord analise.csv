@@ -1,0 +1,2 @@
+md5,source_file,prediction,malware_probability,confidence,score_type
+3ad58d96a7d2dfc03929f9ec6adc7db4,BetterDiscord-Installer-Windows.exe,Benign,0.0020842393283326526,alto,probability

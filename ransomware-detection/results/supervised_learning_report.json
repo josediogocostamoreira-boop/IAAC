@@ -94,16 +94,127 @@
     "apis"
   ],
   "selection_rule": "Highest validation Malware recall, then precision, then F1; the test set is held out until final evaluation.",
-  "selected_model": "gradient_boosting",
+  "selected_model": "random_forest",
+  "model_selection": {
+    "initial_validation_winner": "random_forest",
+    "final_model": "random_forest",
+    "initial_validation_metrics": {
+      "model": "random_forest",
+      "accuracy": 0.9949585884047534,
+      "precision_malware": 0.9904059040590406,
+      "recall_malware": 0.9992553983618764,
+      "f1_malware": 0.9948109710896961,
+      "roc_auc": 0.9993530169866792,
+      "pr_auc": 0.9991858971645806,
+      "score_type": "probability"
+    },
+    "test_used_for_selection": false
+  },
+  "cross_validation": {
+    "method": "StratifiedKFold",
+    "folds": 3,
+    "shuffle": true,
+    "random_state": 42,
+    "scope": "train+validation only; test remains held out",
+    "best_parameters": {
+      "model__max_depth": null,
+      "model__n_estimators": 100,
+      "select__k": 32
+    },
+    "best_validation_metrics": {
+      "recall_malware": {
+        "mean": 0.9970226670721333,
+        "std": 0.0006965205842749492
+      },
+      "precision_malware": {
+        "mean": 0.9861984908233623,
+        "std": 0.0020474853129432338
+      },
+      "f1_malware": {
+        "mean": 0.9915802134785457,
+        "std": 0.0012439485955428177
+      },
+      "roc_auc": {
+        "mean": 0.9991287517038505,
+        "std": 1.1911572788678027e-05
+      }
+    },
+    "mean_train_recall_malware": 1.0,
+    "mean_validation_recall_malware": 0.9970226670721333,
+    "recall_generalization_gap": 0.002977332927866727,
+    "fit_diagnostic": "no_strong_recall_signal_of_underfit_or_overfit",
+    "learning_curve": {
+      "artifact": "learning_curve.csv",
+      "plot": "learning_curve.png",
+      "scope": "train+validation only",
+      "points": [
+        {
+          "training_rows": 1481,
+          "train_recall_mean": 1.0,
+          "train_recall_std": 0.0,
+          "validation_recall_mean": 0.9968363435896413,
+          "validation_recall_std": 0.0011476989918200163
+        },
+        {
+          "training_rows": 2962,
+          "train_recall_mean": 1.0,
+          "train_recall_std": 0.0,
+          "validation_recall_mean": 0.9966503316848794,
+          "validation_recall_std": 0.0009122861613998025
+        },
+        {
+          "training_rows": 4443,
+          "train_recall_mean": 1.0,
+          "train_recall_std": 0.0,
+          "validation_recall_mean": 0.9966503316848794,
+          "validation_recall_std": 0.0009122861613998025
+        },
+        {
+          "training_rows": 5924,
+          "train_recall_mean": 1.0,
+          "train_recall_std": 0.0,
+          "validation_recall_mean": 0.9960921921113504,
+          "validation_recall_std": 0.0007900633189655543
+        },
+        {
+          "training_rows": 7405,
+          "train_recall_mean": 1.0,
+          "train_recall_std": 0.0,
+          "validation_recall_mean": 0.996836551308128,
+          "validation_recall_std": 0.0009492118594275051
+        }
+      ]
+    },
+    "diagnostic_rule": "Potential overfitting if train-CV recall minus validation-CV recall > 0.10; potential underfitting if both recalls < 0.70. These are screening thresholds, not proof of model capacity.",
+    "search_results": "hyperparameter_search.csv"
+  },
+  "feature_selection": {
+    "method": "SelectKBest(f_classif) inside the pipeline",
+    "selection_k_candidate": 32,
+    "fit_scope": "each training fold only",
+    "best_k": 32
+  },
+  "feature_engineering": {
+    "method": "log1p for non-negative numeric features with |training skewness| > 1",
+    "implementation": "Log1pSkewedNonNegative within each model pipeline",
+    "fit_scope": "each training fold only"
+  },
+  "regularization": {
+    "method": "model-specific complexity/regularization parameters searched by CV",
+    "best_parameters": {
+      "model__max_depth": null
+    }
+  },
   "deployment_artifacts": {
-    "model": "gradient_boosting.joblib",
-    "models_directory": "D:\\Escola\\ISTEC\\IAAC\\IAAC-repo\\ransomware-detection\\models\\ransomware",
+    "model": "random_forest.joblib",
+    "models_directory": "models\\ransomware",
     "model_files": [
       "logistic_regression.joblib",
       "decision_tree.joblib",
       "knn.joblib",
       "gaussian_naive_bayes.joblib",
       "bernoulli_naive_bayes.joblib",
+      "multinomial_naive_bayes.joblib",
       "linear_svm.joblib",
       "rbf_svm.joblib",
       "adaboost.joblib",
@@ -115,33 +226,53 @@
     "fit_data": "train + validation"
   },
   "final_test_metrics": {
-    "accuracy": 0.9913606911447084,
-    "precision_malware": 0.9867256637168141,
-    "recall_malware": 0.9955357142857143,
-    "f1_malware": 0.9911111111111112,
-    "roc_auc": 0.9987337181211396,
-    "pr_auc": 0.9987046282085401
+    "accuracy": 0.9924406047516199,
+    "precision_malware": 0.9874723655121592,
+    "recall_malware": 0.9970238095238095,
+    "f1_malware": 0.9922251018141429,
+    "roc_auc": 0.998971875622634,
+    "pr_auc": 0.9988976659963904
   },
   "regression_scope": "Not trained: this dataset has categorical labels (Class, Category, Family) and no continuous outcome appropriate for regression.",
   "models": [
     {
-      "model": "gradient_boosting",
-      "accuracy": 0.9917176809506661,
-      "precision_malware": 0.9838709677419355,
+      "model": "random_forest",
+      "accuracy": 0.9949585884047534,
+      "precision_malware": 0.9904059040590406,
       "recall_malware": 0.9992553983618764,
-      "f1_malware": 0.9915035094200222,
-      "roc_auc": 0.9982381915215108,
-      "pr_auc": 0.9969073106731721,
+      "f1_malware": 0.9948109710896961,
+      "roc_auc": 0.9993530169866792,
+      "pr_auc": 0.9991858971645806,
       "score_type": "probability"
     },
     {
-      "model": "random_forest",
-      "accuracy": 0.9945984875765215,
-      "precision_malware": 0.9903988183161004,
+      "model": "linear_svm",
+      "accuracy": 0.9895570759812747,
+      "precision_malware": 0.9802631578947368,
       "recall_malware": 0.9985107967237528,
-      "f1_malware": 0.9944382647385984,
-      "roc_auc": 0.999118316888749,
-      "pr_auc": 0.9987622412046647,
+      "f1_malware": 0.9893028402803393,
+      "roc_auc": 0.9983898119387578,
+      "pr_auc": 0.9973724737465387,
+      "score_type": "decision_function (not calibrated probability)"
+    },
+    {
+      "model": "gradient_boosting",
+      "accuracy": 0.9906373784659704,
+      "precision_malware": 0.983125458547322,
+      "recall_malware": 0.9977661950856291,
+      "f1_malware": 0.9903917220990391,
+      "roc_auc": 0.9977319247173474,
+      "pr_auc": 0.9972757219927672,
+      "score_type": "probability"
+    },
+    {
+      "model": "extra_trees",
+      "accuracy": 0.9906373784659704,
+      "precision_malware": 0.983125458547322,
+      "recall_malware": 0.9977661950856291,
+      "f1_malware": 0.9903917220990391,
+      "roc_auc": 0.9996152372288356,
+      "pr_auc": 0.9995588784861124,
       "score_type": "probability"
     },
     {
@@ -150,48 +281,48 @@
       "precision_malware": 0.9816849816849816,
       "recall_malware": 0.9977661950856291,
       "f1_malware": 0.9896602658788775,
-      "roc_auc": 0.9984856131955456,
-      "pr_auc": 0.9979363631871552,
+      "roc_auc": 0.998503527251693,
+      "pr_auc": 0.9980194501968661,
       "score_type": "probability"
     },
     {
-      "model": "linear_svm",
-      "accuracy": 0.9877565718401152,
-      "precision_malware": 0.9801907556859868,
-      "recall_malware": 0.9947877885331348,
-      "f1_malware": 0.9874353288987435,
-      "roc_auc": 0.9977547716295352,
-      "pr_auc": 0.9967461430212838,
+      "model": "logistic_regression",
+      "accuracy": 0.9902772776377385,
+      "precision_malware": 0.9838235294117647,
+      "recall_malware": 0.996276991809382,
+      "f1_malware": 0.9900110987791343,
+      "roc_auc": 0.9983560608184803,
+      "pr_auc": 0.99723258291195,
+      "score_type": "probability"
+    },
+    {
+      "model": "rbf_svm",
+      "accuracy": 0.9873964710118833,
+      "precision_malware": 0.9808823529411764,
+      "recall_malware": 0.9932985852568875,
+      "f1_malware": 0.9870514243433223,
+      "roc_auc": 0.9983955236668048,
+      "pr_auc": 0.996970202798969,
       "score_type": "decision_function (not calibrated probability)"
     },
     {
-      "model": "extra_trees",
-      "accuracy": 0.9863161685271876,
-      "precision_malware": 0.9801324503311258,
-      "recall_malware": 0.9918093819806404,
-      "f1_malware": 0.9859363434492968,
-      "roc_auc": 0.999010572927863,
-      "pr_auc": 0.9988941531713592,
-      "score_type": "probability"
-    },
-    {
       "model": "decision_tree",
-      "accuracy": 0.9881166726683471,
-      "precision_malware": 0.986627043090639,
-      "recall_malware": 0.9888309754281459,
-      "f1_malware": 0.9877277798438081,
-      "roc_auc": 0.988139337086458,
-      "pr_auc": 0.9810088938265825,
+      "accuracy": 0.9866762693554195,
+      "precision_malware": 0.9851411589895989,
+      "recall_malware": 0.9873417721518988,
+      "f1_malware": 0.9862402380066939,
+      "roc_auc": 0.9866973853785992,
+      "pr_auc": 0.9787927318165084,
       "score_type": "probability"
     },
     {
       "model": "gaussian_naive_bayes",
-      "accuracy": 0.6341375585163845,
-      "precision_malware": 0.5709943551888841,
-      "recall_malware": 0.9791511541325391,
-      "f1_malware": 0.7213384530992869,
-      "roc_auc": 0.6537950278888104,
-      "pr_auc": 0.5755438353227191,
+      "accuracy": 0.6290961469211379,
+      "precision_malware": 0.567485985338508,
+      "recall_malware": 0.9798957557706627,
+      "f1_malware": 0.7187329328235936,
+      "roc_auc": 0.647558859357524,
+      "pr_auc": 0.5710188425702428,
       "score_type": "probability"
     },
     {
@@ -205,33 +336,23 @@
       "score_type": "probability"
     },
     {
-      "model": "logistic_regression",
-      "accuracy": 0.9751530428519986,
-      "precision_malware": 0.9825757575757575,
-      "recall_malware": 0.9657483246463142,
-      "f1_malware": 0.9740893728877206,
-      "roc_auc": 0.9938489881414142,
-      "pr_auc": 0.9906481763787487,
+      "model": "knn",
+      "accuracy": 0.9690313287720562,
+      "precision_malware": 0.9665924276169265,
+      "recall_malware": 0.9694713328369322,
+      "f1_malware": 0.9680297397769517,
+      "roc_auc": 0.9902306084236565,
+      "pr_auc": 0.985350112547078,
       "score_type": "probability"
     },
     {
-      "model": "rbf_svm",
-      "accuracy": 0.8768455167446885,
-      "precision_malware": 0.8634713144517067,
-      "recall_malware": 0.885331347728965,
-      "f1_malware": 0.8742647058823529,
-      "roc_auc": 0.9562372589520952,
-      "pr_auc": 0.948356793230897,
-      "score_type": "decision_function (not calibrated probability)"
-    },
-    {
-      "model": "knn",
-      "accuracy": 0.8934101548433562,
-      "precision_malware": 0.9030023094688222,
-      "recall_malware": 0.8734177215189873,
-      "f1_malware": 0.8879636638909917,
-      "roc_auc": 0.9531960233910841,
-      "pr_auc": 0.9334249625488373,
+      "model": "multinomial_naive_bayes",
+      "accuracy": 0.8736046092906014,
+      "precision_malware": 0.8224967490247074,
+      "recall_malware": 0.9419210722263589,
+      "f1_malware": 0.8781673030197849,
+      "roc_auc": 0.963429363059243,
+      "pr_auc": 0.9630664443275836,
       "score_type": "probability"
     }
   ]
