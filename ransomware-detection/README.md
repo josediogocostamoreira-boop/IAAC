@@ -51,30 +51,51 @@ as suas limitações estão em `docs/deployment.md`.
 
 ## Treinar e guardar os classificadores
 
+Gerar tabelas, testes estatísticos e visualizações EDA do roadmap:
+
 ```powershell
-python src/supervised_learning.py --data ransom.csv --output results --model-dir models/ransomware
+python src/roadmap_eda.py --data ransom.csv --output results/roadmap/eda
 ```
 
-O script compara 11 classificadores scikit-learn, escolhe o modelo por recall
-de Malware na validação e usa o teste apenas na avaliação final. Todos os
-pipelines finais são guardados em `models/ransomware/`; o modelo selecionado e
-o schema são usados pela inferência. Para XGBoost, instala-o explicitamente e
-acrescenta `--include-xgboost`.
+Treinar, selecionar e afinar:
+
+```powershell
+python src/supervised_learning.py --data ransom.csv --output results --model-dir models/ransomware --cv-folds 3
+```
+
+O script compara 12 classificadores scikit-learn, escolhe o modelo por recall
+de Malware na validação, afina-o com validação cruzada estratificada e usa o
+teste apenas na avaliação final. A seleção e a engenharia de features são
+aprendidas dentro dos folds. Todos os pipelines finais são guardados em
+`models/ransomware/`; o modelo selecionado e o schema são usados pela
+inferência. Para XGBoost, instala-o explicitamente e acrescenta
+`--include-xgboost`.
 
 ## Aplicação gráfica Windows
 
-Para criar uma aplicação gráfica com botões para instalar dependências, treinar,
-fazer previsões e iniciar a API:
+Para criar uma aplicação gráfica com opções para selecionar o CSV, executar EDA,
+gerar o relatório de preparação, treinar/afinar modelos, consultar métricas e
+gráficos, fazer previsões e iniciar a API:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File build_windows.ps1
 .\dist\RansomwareTrainer.exe
 ```
 
-O executável deve ser usado com `ransom.csv`, `models/` e `results/` na pasta
-do projeto. O botão **Extrair .exe/.zip** cria um CSV de features PE estáticas
-para um executável `.exe` ou para os `.exe` contidos num arquivo ZIP. Depois,
-usa **Fazer previsão** e escolhe o CSV criado.
+O executável deve ser usado com a pasta do projeto, incluindo `src/` e um CSV,
+disponível junto do executável ou selecionado na interface. **Gerar EDA** e
+**Relatório de preparação** criam evidência em `results/roadmap/`; **Treinar e
+avaliar modelos** compara os classificadores, executa validação cruzada e
+afinação de hiperparâmetros e guarda métricas e gráficos em `results/`. O
+número de folds é configurável e XGBoost pode ser incluído como dependência
+opcional. **Ver avaliação e gráficos** mostra o relatório do teste reservado e
+a comparação dos modelos. Os botões de artefactos abrem os resultados de EDA e
+preparação. Se o executável não encontrar `.venv`, **Instalar dependências**
+cria esse ambiente com Python 3.13 e instala os requisitos do projeto.
+
+O botão **Extrair .exe/.zip** cria um CSV de features PE estáticas para um
+executável `.exe` ou para os `.exe` contidos num arquivo ZIP. Depois, usa
+**Fazer previsão** e escolhe o CSV criado.
 
 A extração não executa os ficheiros. As features comportamentais (atividade de
 rede, processos e registo) não estão disponíveis na análise estática; essas
@@ -91,6 +112,9 @@ invoca a equipa multiagente selecionada.
 ```powershell
 python -m unittest discover -s tests -v
 ```
+
+A matriz técnica do roadmap e os comandos de reprodução estão em
+[`docs/roadmap-technical-compliance.md`](./docs/roadmap-technical-compliance.md).
 
 ## Deployment do classificador
 

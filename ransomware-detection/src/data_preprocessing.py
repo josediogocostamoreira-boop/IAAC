@@ -8,11 +8,51 @@ from typing import Iterable
 
 import numpy as np
 import pandas as pd
+from scipy.stats import skew
+from sklearn.base import BaseEstimator, TransformerMixin
 
 TARGET = "Class"
 IDENTIFIERS = {"md5", "sha1"}
 FUTURE_TARGETS = {"Category", "Family"}
 EXPECTED_CLASSES = {"Benign", "Malware"}
+
+
+class Log1pSkewedNonNegative(BaseEstimator, TransformerMixin):
+    """Apply log1p only to skewed non-negative numeric columns learned in fit."""
+
+    def __init__(self, skew_threshold: float = 1.0) -> None:
+        self.skew_threshold = skew_threshold
+
+    def fit(self, X, _y=None):
+        values = np.asarray(X, dtype=float)
+        if values.ndim != 2:
+            raise ValueError("Expected a 2D numeric feature matrix.")
+        self.n_features_in_ = values.shape[1]
+        self.log_mask_ = np.zeros(self.n_features_in_, dtype=bool)
+        for index in range(self.n_features_in_):
+            column = values[:, index]
+            finite = column[np.isfinite(column)]
+            if finite.size > 2 and finite.min() >= 0:
+                column_skew = float(skew(finite, bias=False))
+                self.log_mask_[index] = (
+                    np.isfinite(column_skew)
+                    and abs(column_skew) > self.skew_threshold
+                )
+        return self
+
+    def transform(self, X):
+        values = np.asarray(X, dtype=float).copy()
+        if values.ndim != 2 or values.shape[1] != self.n_features_in_:
+            raise ValueError("Feature matrix does not match the fitted schema.")
+        values[:, self.log_mask_] = np.log1p(values[:, self.log_mask_])
+        return values
+
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.asarray(
+                [f"x{index}" for index in range(self.n_features_in_)], dtype=object
+            )
+        return np.asarray(input_features, dtype=object)
 
 
 def parse_numeric_value(value: object) -> float:
@@ -85,7 +125,11 @@ def build_preprocessor(frame: pd.DataFrame, columns: Iterable[str]):
     numeric = selected.select_dtypes(include=[np.number]).columns.tolist()
     categorical = [column for column in selected.columns if column not in numeric]
     numeric_pipeline = Pipeline(
-        [("imputer", SimpleImputer(strategy="median")), ("scale", StandardScaler())]
+        [
+            ("imputer", SimpleImputer(strategy="median")),
+            ("log1p", Log1pSkewedNonNegative()),
+            ("scale", StandardScaler()),
+        ]
     )
     categorical_pipeline = Pipeline(
         [

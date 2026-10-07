@@ -13,13 +13,17 @@
    não preditores.
 7. Converter strings hexadecimais que sejam valores numéricos; manter como
    categóricas as descrições (`PEType`, `Subsystem`, flags, etc.).
-8. Imputar valores numéricos com a mediana calculada no treino.
-9. Imputar categorias com a moda e aplicar one-hot encoding, ignorando
+8. Aplicar `log1p` a valores numéricos não negativos com skewness absoluta > 1,
+   aprendendo a seleção no fold de treino.
+9. Imputar valores numéricos com a mediana calculada no treino.
+10. Imputar categorias com a moda e aplicar one-hot encoding, ignorando
    categorias desconhecidas.
-10. Usar `StandardScaler` apenas quando o modelo o exigir.
-11. Dividir de forma estratificada e agrupada por `md5` (ou depois da
+11. Selecionar features com `SelectKBest(f_classif)` dentro do pipeline; o
+    número de features é afinado na validação cruzada.
+12. Usar `StandardScaler` apenas quando o modelo o exigir.
+13. Dividir de forma estratificada e agrupada por `md5` (ou depois da
     deduplicação, com `train_test_split` estratificado).
-12. Guardar o pipeline e o esquema de colunas usado no treino.
+14. Guardar o pipeline e o esquema de colunas usado no treino.
 
 ## Validações
 
@@ -49,8 +53,10 @@ Produz:
 - `data_preparation_report.json`: decisões e contagens de todas as etapas;
 - `feature_quality.csv`: missing values, skewness e outliers IQR por feature;
 - `high_correlation_pairs.csv`: pares com |Spearman| >= 0,95.
+- `src/roadmap_eda.py` gera em `results/roadmap/eda/` sumários univariados,
+  distribuições, testes bivariados com correção FDR, correlações
+  Pearson/Spearman e PCA exploratória.
 
-O split é estratificado (`random_state=42`), a imputação e a escala são
-ajustadas apenas no treino através do pipeline, e os outliers são reportados
-sem serem apagados. Features `log1p` são apresentadas como candidatos e só
-devem ser aplicadas se melhorarem as métricas em validação.
+O split é estratificado (`random_state=42`), a imputação, a transformação
+`log1p`, a seleção e a escala são ajustadas apenas dentro do treino/fold. Os
+outliers são reportados sem serem apagados.

@@ -1,0 +1,10 @@
+feature,unique_values,missing,mode
+file_extension,1,0,exe
+PEType,3,0,PE32
+MachineType,3,0,"Intel 386 or later, and compatibles"
+magic_number,2,0,MZ
+Magic,3,0,PE32
+Subsystem,5,0,IMAGE_SUBSYSTEM_WINDOWS_GUI
+DllCharacteristics,58,0,"['IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE', 'IMAGE_DLLCHARACTERISTICS_NO_SEH', 'IMAGE_DLLCHARACTERISTICS_NX_COMPAT', 'IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE']"
+text_Characteristics,41,0,"['IMAGE_SCN_CNT_CODE', 'IMAGE_SCN_MEM_EXECUTE', 'IMAGE_SCN_MEM_READ']"
+rdata_Characteristics,39,0,"['IMAGE_SCN_CNT_INITIALIZED_DATA', 'IMAGE_SCN_MEM_READ']"

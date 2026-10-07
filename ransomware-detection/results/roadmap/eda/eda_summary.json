@@ -1,0 +1,74 @@
+{
+  "source": "ransom.csv",
+  "cleaning": {
+    "rows_before": 21752,
+    "rows_after": 13886,
+    "rows_missing_required": 0,
+    "conflicting_rows_removed": 611,
+    "unique_md5": 13886
+  },
+  "rows_after_cleaning": 13886,
+  "feature_count": 72,
+  "numeric_feature_count": 63,
+  "categorical_feature_count": 9,
+  "missing_values_total": 485,
+  "class_distributions": {
+    "Class": {
+      "Benign": 7168,
+      "Malware": 6718
+    },
+    "Category": {
+      "Benign": 7168,
+      "RAT": 2253,
+      "Stealer": 1795,
+      "Ransomware": 1476,
+      "Trojan": 1194
+    },
+    "Family": {
+      "Benign": 7168,
+      "Snake": 521,
+      "Raccoon": 493,
+      "Remcos": 490,
+      "RedLine": 481,
+      "NanoCore": 475,
+      "njRat": 473,
+      "Guloader": 420,
+      "Gh0st": 320,
+      "Formbook": 300,
+      "Emotet": 269,
+      "Ursnif": 265,
+      "Qbot": 260,
+      "Agenttesla": 245,
+      "Gandcrab": 244,
+      "Shade": 243,
+      "Phobos": 239,
+      "Glupteba": 230,
+      "Dharma": 202,
+      "Ryuk": 126,
+      "LockBit": 114,
+      "REvil": 101,
+      "DarkSide": 58,
+      "Cerber": 57,
+      "Maze": 40,
+      "WannaCry": 31,
+      "Ragnar": 21
+    }
+  },
+  "correlations": {
+    "numeric_features": 63,
+    "pearson_pairs": 1953,
+    "spearman_pairs": 1953
+  },
+  "numeric_class_tests": 63,
+  "categorical_class_tests": 8,
+  "multiple_testing_correction": "Benjamini-Hochberg FDR",
+  "bivariate_numeric_test": "two-sided Mann-Whitney U; rank-biserial effect size",
+  "bivariate_categorical_test": "chi-square; Cramer's V effect size",
+  "pca": {
+    "PC1": 0.11523755568888384,
+    "PC2": 0.05469971061694595,
+    "cumulative_2_components": 0.16993726630582978,
+    "scope": "descriptive EDA; fitted to the cleaned dataset, not a predictive model"
+  },
+  "interpretation_note": "EDA associations are descriptive, not causal. Statistical p-values are adjusted for multiple comparisons. PCA is exploratory and uses all cleaned rows; it is not model validation."
+}

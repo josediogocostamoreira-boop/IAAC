@@ -51,6 +51,7 @@ def outlier_summary(frame: pd.DataFrame, numeric_columns: list[str]) -> pd.DataF
                 "upper_bound": float(upper),
                 "outliers_iqr": int(((series < lower) | (series > upper)).sum()),
                 "skewness": float(series.skew()),
+                "kurtosis": float(series.kurtosis()),
             }
         )
     return pd.DataFrame(rows).sort_values("outliers_iqr", ascending=False)
@@ -131,7 +132,11 @@ def build_report(data_path: Path, output_dir: Path) -> dict:
             "high_correlation_threshold": 0.95,
             "high_correlation_pair_count": len(pairs),
             "selected_numeric_feature_count": len(selected_numeric),
-            "selection_fit_scope": "training split only",
+            "selection_recommendation": (
+                "constant and highly correlated features are reported for review; "
+                "SelectKBest(f_classif) is fitted inside each supervised training fold"
+            ),
+            "selection_fit_scope": "training split/fold only",
         },
         "feature_scaling": {
             "method": "StandardScaler",
@@ -141,12 +146,19 @@ def build_report(data_path: Path, output_dir: Path) -> dict:
         "feature_engineering": {
             "log1p_candidates": engineered_feature_candidates(train_x, numeric),
             "rule": "non-negative numeric features with absolute skewness > 1",
-            "status": "candidates reported; not applied without validation",
+            "status": (
+                "applied inside each supervised training fold by "
+                "Log1pSkewedNonNegative; selection is learned from that fold only"
+            ),
         },
         "feature_extraction": {
             "available_features": len(columns),
             "source": "PE metadata and observed behavior columns in ransom.csv",
-            "limitation": "automatic extraction from a raw .exe is not implemented",
+            "raw_file_extractor": "src/extract_features.py extracts static PE data from .exe and .exe members of ZIP",
+            "limitation": (
+                "static extraction cannot provide runtime registry, network, "
+                "process, or behavior features"
+            ),
         },
         "imbalance": {
             "class_counts": target.value_counts().to_dict(),

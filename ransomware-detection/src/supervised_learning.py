@@ -10,6 +10,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.ensemble import (
     AdaBoostClassifier,
     ExtraTreesClassifier,
@@ -19,19 +20,28 @@ from sklearn.ensemble import (
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
+    RocCurveDisplay,
     accuracy_score,
     average_precision_score,
     f1_score,
+    make_scorer,
     precision_score,
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import BernoulliNB, GaussianNB
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.model_selection import (
+    GridSearchCV,
+    StratifiedKFold,
+    learning_curve,
+    train_test_split,
+)
+from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
+from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -39,6 +49,7 @@ from sklearn.tree import DecisionTreeClassifier
 if __package__:
     from .data_preprocessing import (
         TARGET,
+        Log1pSkewedNonNegative,
         convert_numeric_like_columns,
         feature_columns,
         load_and_deduplicate,
@@ -46,6 +57,7 @@ if __package__:
 else:
     from data_preprocessing import (
         TARGET,
+        Log1pSkewedNonNegative,
         convert_numeric_like_columns,
         feature_columns,
         load_and_deduplicate,
@@ -60,7 +72,11 @@ def make_preprocessors(features: pd.DataFrame) -> dict[str, ColumnTransformer]:
 
     def create(numeric_scaler, sparse_threshold: float = 1.0) -> ColumnTransformer:
         numeric_pipeline = Pipeline(
-            [("imputer", SimpleImputer(strategy="median")), ("scaler", numeric_scaler)]
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("log1p", Log1pSkewedNonNegative()),
+                ("scaler", numeric_scaler),
+            ]
         )
         categorical_pipeline = Pipeline(
             [
@@ -119,6 +135,12 @@ def make_models(features: pd.DataFrame, include_xgboost: bool) -> dict[str, Pipe
             [
                 ("preprocess", preprocessors["bernoulli_sparse"]),
                 ("model", BernoulliNB()),
+            ]
+        ),
+        "multinomial_naive_bayes": Pipeline(
+            [
+                ("preprocess", preprocessors["bernoulli_sparse"]),
+                ("model", MultinomialNB()),
             ]
         ),
         "linear_svm": Pipeline(
@@ -192,6 +214,8 @@ def make_models(features: pd.DataFrame, include_xgboost: bool) -> dict[str, Pipe
                 )),
             ]
         )
+    for model in models.values():
+        model.steps.insert(1, ("select", SelectKBest(score_func=f_classif, k="all")))
     return models
 
 
@@ -203,15 +227,68 @@ def malware_scores(model: Pipeline, features: pd.DataFrame) -> np.ndarray:
     return model.decision_function(features)
 
 
+def parameter_grid(model_name: str, selection_k: int) -> dict[str, list[object]]:
+    """Keep the tuning grid small and explicit for reproducible local runs."""
+    feature_counts: list[object] = ["all"]
+    if selection_k > 0:
+        feature_counts.append(selection_k)
+    grid: dict[str, list[object]] = {"select__k": feature_counts}
+    model_grids: dict[str, dict[str, list[object]]] = {
+        "logistic_regression": {"model__C": [0.1, 1.0, 10.0]},
+        "decision_tree": {
+            "model__max_depth": [10, None],
+            "model__min_samples_leaf": [1, 5],
+        },
+        "knn": {
+            "model__n_neighbors": [3, 5, 9],
+            "model__weights": ["uniform", "distance"],
+        },
+        "gaussian_naive_bayes": {
+            "model__var_smoothing": [1e-11, 1e-9, 1e-7]
+        },
+        "bernoulli_naive_bayes": {"model__alpha": [0.1, 1.0, 10.0]},
+        "multinomial_naive_bayes": {"model__alpha": [0.1, 1.0, 10.0]},
+        "linear_svm": {"model__C": [0.1, 1.0, 10.0]},
+        "rbf_svm": {"model__C": [0.1, 1.0]},
+        "adaboost": {
+            "model__n_estimators": [50, 100],
+            "model__learning_rate": [0.5, 1.0],
+        },
+        "gradient_boosting": {
+            "model__n_estimators": [100, 200],
+            "model__max_depth": [1, 3],
+        },
+        "random_forest": {
+            "model__n_estimators": [100, 200],
+            "model__max_depth": [None, 20],
+        },
+        "extra_trees": {
+            "model__n_estimators": [100, 200],
+            "model__max_depth": [None, 20],
+        },
+        "xgboost": {
+            "model__max_depth": [3, 6],
+            "model__learning_rate": [0.05, 0.1],
+        },
+    }
+    if model_name not in model_grids:
+        raise ValueError(f"No hyperparameter grid defined for {model_name}.")
+    grid.update(model_grids[model_name])
+    return grid
+
+
 def train_and_compare(
     data_path: Path,
     output_dir: Path,
     include_xgboost: bool = False,
     model_dir: Path = Path("models/ransomware"),
     dataset_name: str = "ransomware",
+    cv_folds: int = 3,
 ) -> pd.DataFrame:
     if not dataset_name.strip():
         raise ValueError("Dataset name must not be empty.")
+    if cv_folds < 2:
+        raise ValueError("cv_folds must be at least 2.")
     output_dir.mkdir(parents=True, exist_ok=True)
     model_dir.mkdir(parents=True, exist_ok=True)
     frame, preparation_stats = load_and_deduplicate(data_path)
@@ -271,11 +348,125 @@ def train_and_compare(
         ascending=False,
     )
     results.to_csv(output_dir / "supervised_model_comparison.csv", index=False)
-    winner_name = str(results.iloc[0]["model"])
+    initial_winner_name = str(results.iloc[0]["model"])
+    initial_winner = fitted_models[initial_winner_name]
+    print(f"Seleção inicial por validação: {initial_winner_name}.", flush=True)
+
+    preprocessed_train = initial_winner.named_steps["preprocess"].transform(train_x)
+    selection_k = min(32, max(0, preprocessed_train.shape[1] - 1))
+    cv = StratifiedKFold(
+        n_splits=cv_folds, shuffle=True, random_state=RANDOM_STATE
+    )
+    scoring = {
+        "recall_malware": make_scorer(
+            recall_score, pos_label="Malware", zero_division=0
+        ),
+        "precision_malware": make_scorer(
+            precision_score, pos_label="Malware", zero_division=0
+        ),
+        "f1_malware": make_scorer(
+            f1_score, pos_label="Malware", zero_division=0
+        ),
+        "roc_auc": "roc_auc",
+    }
+    print(
+        f"A afinar {initial_winner_name} com {cv_folds}-fold CV "
+        "no conjunto treino+validação...",
+        flush=True,
+    )
+    search = GridSearchCV(
+        estimator=clone(initial_winner),
+        param_grid=parameter_grid(initial_winner_name, selection_k),
+        scoring=scoring,
+        refit="recall_malware",
+        cv=cv,
+        n_jobs=1,
+        return_train_score=True,
+        error_score="raise",
+    )
+    search.fit(train_validation_x, train_validation_y)
+    winner_name = initial_winner_name
+    tuned_winner = search.best_estimator_
+    fitted_models[winner_name] = tuned_winner
+    cv_train_recall = float(search.cv_results_["mean_train_recall_malware"][search.best_index_])
+    cv_validation_recall = float(search.cv_results_["mean_test_recall_malware"][search.best_index_])
+    generalization_gap = cv_train_recall - cv_validation_recall
+    if generalization_gap > 0.10:
+        fit_diagnostic = "potential_overfitting"
+    elif cv_train_recall < 0.70 and cv_validation_recall < 0.70:
+        fit_diagnostic = "potential_underfitting"
+    else:
+        fit_diagnostic = "no_strong_recall_signal_of_underfit_or_overfit"
+    cv_results = pd.DataFrame(search.cv_results_)
+    cv_results.to_csv(output_dir / "hyperparameter_search.csv", index=False)
+    best_cv_metrics = {
+        metric: {
+            "mean": float(search.cv_results_[f"mean_test_{metric}"][search.best_index_]),
+            "std": float(search.cv_results_[f"std_test_{metric}"][search.best_index_]),
+        }
+        for metric in scoring
+    }
+    print(
+        f"CV concluída: recall médio={cv_validation_recall:.4f}, "
+        f"diagnóstico={fit_diagnostic}.",
+        flush=True,
+    )
+    learning_sizes, train_curve, validation_curve = learning_curve(
+        estimator=clone(tuned_winner),
+        X=train_validation_x,
+        y=train_validation_y,
+        train_sizes=np.linspace(0.2, 1.0, 5),
+        cv=cv,
+        scoring=scoring["recall_malware"],
+        n_jobs=1,
+        shuffle=True,
+        random_state=RANDOM_STATE,
+    )
+    learning_curve_frame = pd.DataFrame(
+        {
+            "training_rows": learning_sizes,
+            "train_recall_mean": train_curve.mean(axis=1),
+            "train_recall_std": train_curve.std(axis=1),
+            "validation_recall_mean": validation_curve.mean(axis=1),
+            "validation_recall_std": validation_curve.std(axis=1),
+        }
+    )
+    learning_curve_frame.to_csv(output_dir / "learning_curve.csv", index=False)
+    plt.figure(figsize=(8, 5))
+    plt.plot(
+        learning_sizes,
+        learning_curve_frame["train_recall_mean"],
+        marker="o",
+        label="Treino CV",
+    )
+    plt.plot(
+        learning_sizes,
+        learning_curve_frame["validation_recall_mean"],
+        marker="o",
+        label="Validação CV",
+    )
+    plt.fill_between(
+        learning_sizes,
+        learning_curve_frame["validation_recall_mean"]
+        - learning_curve_frame["validation_recall_std"],
+        learning_curve_frame["validation_recall_mean"]
+        + learning_curve_frame["validation_recall_std"],
+        alpha=0.18,
+    )
+    plt.xlabel("Amostras de treino por fold")
+    plt.ylabel("Recall de Malware")
+    plt.ylim(0, 1.02)
+    plt.title(f"Learning curve — {winner_name}")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_dir / "learning_curve.png", dpi=160)
+    plt.close()
+
     model_files = []
     for name, model in fitted_models.items():
         print(f"A guardar {name}...", flush=True)
-        model.fit(train_validation_x, train_validation_y)
+        if name != winner_name:
+            model.fit(train_validation_x, train_validation_y)
         model_path = model_dir / f"{name}.joblib"
         joblib.dump(model, model_path)
         model_files.append(model_path.name)
@@ -318,6 +509,59 @@ def train_and_compare(
         "features": columns,
         "selection_rule": "Highest validation Malware recall, then precision, then F1; the test set is held out until final evaluation.",
         "selected_model": winner_name,
+        "model_selection": {
+            "initial_validation_winner": initial_winner_name,
+            "final_model": winner_name,
+            "initial_validation_metrics": results.iloc[0].to_dict(),
+            "test_used_for_selection": False,
+        },
+        "cross_validation": {
+            "method": "StratifiedKFold",
+            "folds": cv_folds,
+            "shuffle": True,
+            "random_state": RANDOM_STATE,
+            "scope": "train+validation only; test remains held out",
+            "best_parameters": search.best_params_,
+            "best_validation_metrics": best_cv_metrics,
+            "mean_train_recall_malware": cv_train_recall,
+            "mean_validation_recall_malware": cv_validation_recall,
+            "recall_generalization_gap": generalization_gap,
+            "fit_diagnostic": fit_diagnostic,
+            "learning_curve": {
+                "artifact": "learning_curve.csv",
+                "plot": "learning_curve.png",
+                "scope": "train+validation only",
+                "points": learning_curve_frame.to_dict(orient="records"),
+            },
+            "diagnostic_rule": (
+                "Potential overfitting if train-CV recall minus validation-CV recall > 0.10; "
+                "potential underfitting if both recalls < 0.70. These are screening thresholds, "
+                "not proof of model capacity."
+            ),
+            "search_results": "hyperparameter_search.csv",
+        },
+        "feature_selection": {
+            "method": "SelectKBest(f_classif) inside the pipeline",
+            "selection_k_candidate": selection_k if selection_k > 0 else "all",
+            "fit_scope": "each training fold only",
+            "best_k": search.best_params_.get("select__k", "all"),
+        },
+        "feature_engineering": {
+            "method": "log1p for non-negative numeric features with |training skewness| > 1",
+            "implementation": "Log1pSkewedNonNegative within each model pipeline",
+            "fit_scope": "each training fold only",
+        },
+        "regularization": {
+            "method": "model-specific complexity/regularization parameters searched by CV",
+            "best_parameters": {
+                key: value
+                for key, value in search.best_params_.items()
+                if key.endswith("__C")
+                or key.endswith("__alpha")
+                or key.endswith("__max_depth")
+                or key.endswith("__min_samples_leaf")
+            },
+        },
         "deployment_artifacts": {
             "model": f"{winner_name}.joblib",
             "models_directory": str(model_dir),
@@ -341,6 +585,16 @@ def train_and_compare(
     ).figure_.savefig(
         output_dir / "supervised_confusion_matrix.png", dpi=160, bbox_inches="tight"
     )
+    plt.close("all")
+    RocCurveDisplay.from_predictions(
+        test_y == "Malware",
+        test_scores,
+        name=winner_name,
+    )
+    plt.title(f"ROC — {winner_name}")
+    plt.tight_layout()
+    plt.savefig(output_dir / "supervised_roc_curve.png", dpi=160)
+    plt.close()
     return results
 
 
@@ -355,6 +609,12 @@ def main() -> None:
     )
     parser.add_argument("--dataset-name", default="ransomware")
     parser.add_argument(
+        "--cv-folds",
+        type=int,
+        default=3,
+        help="Stratified folds used to tune the validation-selected model (default: 3).",
+    )
+    parser.add_argument(
         "--include-xgboost",
         action="store_true",
         help="Include XGBoost if installed; it is an optional dependency.",
@@ -366,6 +626,7 @@ def main() -> None:
         args.include_xgboost,
         args.model_dir,
         args.dataset_name,
+        args.cv_folds,
     )
     print(results.to_string(index=False))
 
