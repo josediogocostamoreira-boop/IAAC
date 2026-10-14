@@ -24,3 +24,8 @@
 - Revisão final do relatório técnico e da documentação.
 - Verificação de que o projeto contém os principais elementos do pipeline de ML para deteção de intrusão.
 - Preparação para consolidação dos resultados e apresentação final.
+
+## 19/10/2026
+- Atualização do registo de progresso para refletir a revisão final do trabalho.
+- Confirmação da estrutura do projeto e dos principais artefactos gerados.
+- Organização da documentação e preparação para a apresentação final.
