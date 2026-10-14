@@ -29,3 +29,4 @@
 - Atualização do registo de progresso para refletir a revisão final do trabalho.
 - Confirmação da estrutura do projeto e dos principais artefactos gerados.
 - Organização da documentação e preparação para a apresentação final.
+.
