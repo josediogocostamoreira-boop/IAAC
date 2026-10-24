@@ -1,42 +1,55 @@
-import os
+"""Treino dos classificadores definidos no roadmap."""
+from __future__ import annotations
+
 import pickle
-import warnings
+from pathlib import Path
+
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import BernoulliNB, GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB, BernoulliNB
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from xgboost import XGBClassifier
+from sklearn.tree import DecisionTreeClassifier
 
-warnings.filterwarnings('ignore')
+RANDOM_STATE = 42
 
-def train_all_classifiers(X_train, y_train, save_path='../models/trained_models.pkl'):
-    """
-    Treina todos os modelos do Roadmap (incluindo variantes e XGBoost).
-    """
+
+def build_classifiers():
+    """Modelos de classificação abordados no módulo de aprendizagem supervisionada."""
     models = {
-        'Logistic Regression': LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42),
-        'Decision Tree': DecisionTreeClassifier(class_weight='balanced', max_depth=6, random_state=42),
-        'k-NN': KNeighborsClassifier(n_neighbors=5),
-        'Gaussian Naïve Bayes': GaussianNB(),
-        'Bernoulli Naïve Bayes': BernoulliNB(),
-        'SVM (RBF Kernel)': SVC(kernel='rbf', class_weight='balanced', probability=True, random_state=42),
-        'SVM (Poly Kernel)': SVC(kernel='poly', degree=3, class_weight='balanced', probability=True, random_state=42),
-        'Random Forest': RandomForestClassifier(class_weight='balanced', n_estimators=100, max_depth=8, random_state=42),
-        'AdaBoost': AdaBoostClassifier(n_estimators=50, random_state=42),
-        'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42),
-        'XGBoost': XGBClassifier(n_estimators=100, eval_metric='logloss', random_state=42)
+        "Logistic Regression": LogisticRegression(max_iter=2000, class_weight="balanced", random_state=RANDOM_STATE),
+        "Decision Tree": DecisionTreeClassifier(max_depth=8, min_samples_leaf=5, class_weight="balanced", random_state=RANDOM_STATE),
+        "k-NN": KNeighborsClassifier(n_neighbors=11),
+        "Gaussian Naive Bayes": GaussianNB(),
+        "Bernoulli Naive Bayes": BernoulliNB(),
+        "SVM (RBF)": SVC(kernel="rbf", C=1.0, class_weight="balanced", probability=False, random_state=RANDOM_STATE),
+        "SVM (Polynomial)": SVC(kernel="poly", degree=3, class_weight="balanced", probability=False, random_state=RANDOM_STATE),
+        "Random Forest": RandomForestClassifier(n_estimators=250, max_depth=12, min_samples_leaf=3, class_weight="balanced", n_jobs=-1, random_state=RANDOM_STATE),
+        "AdaBoost": AdaBoostClassifier(n_estimators=150, learning_rate=0.7, random_state=RANDOM_STATE),
+        "Gradient Boosting": GradientBoostingClassifier(n_estimators=150, learning_rate=0.05, max_depth=3, random_state=RANDOM_STATE),
     }
-    
-    trained_models = {}
-    for name, model in models.items():
+    try:
+        from xgboost import XGBClassifier
+        models["XGBoost"] = XGBClassifier(n_estimators=75, max_depth=4, learning_rate=0.05,
+            subsample=0.9, colsample_bytree=0.9, eval_metric="logloss", random_state=RANDOM_STATE)
+    except ImportError:
+        pass
+    return models
+
+
+def train_all_classifiers(X_train, y_train, save_path="models/trained_models.pkl"):
+    trained = {}
+    for name, model in build_classifiers().items():
         print(f"  -> A treinar {name}...")
-        model.fit(X_train, y_train)
-        trained_models[name] = model
-        
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with open(save_path, 'wb') as f:
-        pickle.dump(trained_models, f)
-        
-    return trained_models
+        trained[name] = model.fit(X_train, y_train)
+    destination = Path(save_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("wb") as handle:
+        pickle.dump({"models": trained}, handle)
+    return trained
+
+
+def load_models(path="models/trained_models.pkl"):
+    with open(path, "rb") as handle:
+        payload = pickle.load(handle)
+    return payload["models"] if isinstance(payload, dict) and "models" in payload else payload

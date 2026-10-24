@@ -1,70 +1,44 @@
-import os
-import pickle
-import pandas as pd
+"""Avaliação, seleção e otimização de classificadores."""
+from __future__ import annotations
+import json
+from pathlib import Path
 import numpy as np
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn.model_selection import cross_val_score, StratifiedKFold, GridSearchCV
+import pandas as pd
+from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score
+try:  # suporta execução como módulo e a partir dos notebooks
+    from .data_prep import load_prepared_data
+    from .train import load_models
+except ImportError:
+    from data_prep import load_prepared_data
+    from train import load_models
 
-def evaluate_all_models(models_path='../models/trained_models.pkl', data_path='../models/processed_data.pkl'):
-    """
-    Avaliação avançada: Métricas de Teste, Cross-Validation e Deteção de Overfitting.
-    """
-    with open(data_path, 'rb') as f:
-        data = pickle.load(f)
-        X_train_prep, X_test_prep, y_train, y_test = data[0], data[1], data[2], data[3]
-        
-    with open(models_path, 'rb') as f:
-        trained_models = pickle.load(f)
-        
-    results = []
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    
-    for name, model in trained_models.items():
-        # Previsões no conjunto de Teste
-        y_pred_test = model.predict(X_test_prep)
-        y_prob_test = model.predict_proba(X_test_prep)[:, 1] if hasattr(model, "predict_proba") else [0]*len(y_pred_test)
-        
-        # Previsões no conjunto de Treino (para avaliar Overfitting)
-        y_pred_train = model.predict(X_train_prep)
-        f1_train = f1_score(y_train, y_pred_train, zero_division=0)
-        f1_test = f1_score(y_test, y_pred_test, zero_division=0)
-        
-        # Validação Cruzada (Cross-Validation F1-Score)
-        cv_scores = cross_val_score(model, X_train_prep, y_train, cv=cv, scoring='f1')
-        
-        # Diagnóstico de Overfitting/Underfitting
+def _probabilities(model, X):
+    if hasattr(model, "predict_proba"):
+        return model.predict_proba(X)[:, 1]
+    return 1 / (1 + np.exp(-model.decision_function(X)))
+
+def evaluate_all_models(models_path="models/trained_models.pkl", data_path="models/processed_data.pkl", results_path="models/model_metrics.csv"):
+    """Calcula métricas de teste e F1 com validação cruzada estratificada (5 folds)."""
+    data, models = load_prepared_data(data_path), load_models(models_path)
+    cv, rows, matrices = StratifiedKFold(5, shuffle=True, random_state=42), [], {}
+    for name, model in models.items():
+        predicted, probability = model.predict(data.X_test), _probabilities(model, data.X_test)
+        f1_train, f1_test = f1_score(data.y_train, model.predict(data.X_train)), f1_score(data.y_test, predicted)
+        # Execução sequencial: evita processos órfãos em ambientes Windows/notebooks.
+        scores = cross_val_score(clone(model), data.X_train, data.y_train, cv=cv, scoring="f1", n_jobs=1)
         gap = f1_train - f1_test
-        status = "Overfitting" if gap > 0.10 else ("Underfitting" if f1_test < 0.60 else "Balanceado")
-        
-        results.append({
-            'Modelo': name,
-            'Accuracy': round(accuracy_score(y_test, y_pred_test), 4),
-            'Precision': round(precision_score(y_test, y_pred_test, zero_division=0), 4),
-            'Recall': round(recall_score(y_test, y_pred_test, zero_division=0), 4),
-            'F1-Test': round(f1_test, 4),
-            'F1-CV (5-Fold)': round(cv_scores.mean(), 4),
-            'ROC-AUC': round(roc_auc_score(y_test, y_prob_test), 4),
-            'Diagnóstico': status
-        })
-        
-    results_df = pd.DataFrame(results).sort_values(by='F1-Test', ascending=False)
-    return results_df, X_train_prep, X_test_prep, y_train, y_test
+        rows.append({"model": name, "accuracy": accuracy_score(data.y_test, predicted), "precision": precision_score(data.y_test, predicted, zero_division=0), "recall": recall_score(data.y_test, predicted, zero_division=0), "f1_test": f1_test, "f1_cv_mean": scores.mean(), "f1_cv_std": scores.std(), "roc_auc": roc_auc_score(data.y_test, probability), "f1_train": f1_train, "generalization_gap": gap, "diagnosis": "overfitting" if gap > .10 else ("underfitting" if f1_test < .60 else "balanced")})
+        matrices[name] = confusion_matrix(data.y_test, predicted).tolist()
+    results = pd.DataFrame(rows).sort_values(["f1_cv_mean", "f1_test"], ascending=False).reset_index(drop=True)
+    destination = Path(results_path); destination.parent.mkdir(parents=True, exist_ok=True)
+    results.to_csv(destination, index=False)
+    destination.with_suffix(".json").write_text(json.dumps({"selection_metric": "mean F1 in stratified 5-fold CV", "best_model": results.iloc[0]["model"], "confusion_matrices": matrices}, indent=2), encoding="utf-8")
+    return results, results.iloc[0]["model"], matrices
 
-def tune_random_forest(X_train_prep, y_train, X_test_prep, y_test):
-    """
-    GridSearchCV com Cross-Validation para Hyperparameter Tuning.
-    """
-    param_grid = {
-        'n_estimators': [50, 100, 150],
-        'max_depth': [6, 8, 12],
-        'min_samples_split': [2, 5]
-    }
-    
-    grid = GridSearchCV(
-        RandomForestClassifier(class_weight='balanced', random_state=42),
-        param_grid, cv=3, scoring='f1', n_jobs=-1
-    )
-    grid.fit(X_train_prep, y_train)
-    
-    return grid.best_params_, grid.best_score_, grid.best_estimator_
+def tune_random_forest(X_train, y_train):
+    """GridSearchCV pequeno e reproduzível, otimizado para F1."""
+    grid = GridSearchCV(RandomForestClassifier(class_weight="balanced", random_state=42, n_jobs=-1), {"n_estimators": [150, 250], "max_depth": [8, 12, None], "min_samples_leaf": [1, 3, 5]}, cv=StratifiedKFold(3, shuffle=True, random_state=42), scoring="f1", n_jobs=-1)
+    return grid.fit(X_train, y_train)
