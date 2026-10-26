@@ -5,9 +5,7 @@ evitar data leakage entre os conjuntos de treino e teste.
 """
 from __future__ import annotations
 
-import pickle
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -76,6 +74,8 @@ def _make_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
 
 @dataclass
 class PreparedData:
+    X_train_raw: pd.DataFrame
+    X_test_raw: pd.DataFrame
     X_train: np.ndarray
     X_test: np.ndarray
     y_train: pd.Series
@@ -84,12 +84,7 @@ class PreparedData:
     feature_names: list[str]
     metadata: dict
 
-    def as_dict(self) -> dict:
-        return self.__dict__
-
-
 def load_and_preprocess_data(csv_path="data/cybersecurity_intrusion_data.csv",
-                             save_path="models/processed_data.pkl",
                              test_size: float = 0.20) -> PreparedData:
     """Lê, valida, divide estratificadamente e transforma o dataset."""
     df = pd.read_csv(csv_path)
@@ -107,22 +102,11 @@ def load_and_preprocess_data(csv_path="data/cybersecurity_intrusion_data.csv",
     X_train = preprocessor.fit_transform(X_train_raw)
     X_test = preprocessor.transform(X_test_raw)
     prepared = PreparedData(
+        X_train_raw=X_train_raw.reset_index(drop=True), X_test_raw=X_test_raw.reset_index(drop=True),
         X_train=X_train, X_test=X_test, y_train=y_train.reset_index(drop=True),
         y_test=y_test.reset_index(drop=True), preprocessor=preprocessor,
         feature_names=preprocessor.get_feature_names_out().tolist(),
         metadata={"target": target, "raw_features": X.columns.tolist(), "rows": len(df),
                   "test_size": test_size, "random_state": RANDOM_STATE},
     )
-    destination = Path(save_path)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with destination.open("wb") as handle:
-        pickle.dump(prepared.as_dict(), handle)
     return prepared
-
-
-def load_prepared_data(path="models/processed_data.pkl") -> PreparedData:
-    with open(path, "rb") as handle:
-        payload = pickle.load(handle)
-    if not isinstance(payload, dict):
-        raise ValueError("Artefacto antigo detetado; execute novamente a preparação.")
-    return PreparedData(**payload)

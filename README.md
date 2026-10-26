@@ -1,24 +1,39 @@
 # Sistema de Deteção de Intrusões
 
-Projeto IAAC de aprendizagem supervisionada para classificar sessões de rede como normais ou intrusões. A pipeline segue CRISP-ML e disponibiliza um deployment local e um sistema multiagente auditável.
+Projeto de classificação supervisionada de sessões de rede, organizado em torno dos tópicos do Roadmap: compreensão dos dados, preparação, aprendizagem supervisionada e avaliação/otimização de modelos.
 
 ## Executar
+
+Instale as dependências e execute a pipeline:
 
 ```powershell
 python -m pip install -r requirements.txt
 python main.py
 ```
 
-Os resultados são guardados em `models/model_metrics.csv` e `models/model_metrics.json`. Para classificar uma sessão, use `scripts/predict.py`; veja o exemplo em [PROJECT_DELIVERABLES.md](docs/PROJECT_DELIVERABLES.md).
+O programa prepara os dados, treina os classificadores e apresenta as métricas no terminal. Para explorar cada etapa, abra os notebooks da pasta `notebook/` e execute as células pela ordem indicada.
+
+## Notebooks
+
+- `01_Data_Understanding.ipynb` — estatística descritiva, visualizações, análise univariada/bivariada e correlações de Pearson e Spearman;
+- `02_Data_Preparation.ipynb` — valores em falta, valores extremos, divisão dos dados, normalização e engenharia de atributos;
+- `03_Supervised_Learning.ipynb` — treino de classificadores supervisionados;
+- `04_Model_Evaluation_Optimization.ipynb` — matriz de confusão, precision, recall, F1, curva ROC-AUC, validação cruzada, análise de sobreajuste/subajuste e tuning;
+- `main_pipeline.ipynb` — execução integrada das etapas acima.
 
 ## Estrutura
 
-- `data/` — dataset de cibersegurança.
-- `notebook/` — EDA, preparação, treino e avaliação.
-- `scripts/` — módulos reutilizáveis da pipeline e deployment.
-- `models/` — artefactos serializados gerados pela execução.
-- `docs/` — diagramas, backlog, decisões e guia de entrega.
+- `data/` — dataset utilizado na experiência;
+- `notebook/` — análise e experimentação por etapa;
+- `scripts/` — implementação reutilizável de preparação, treino e avaliação;
+- `docs/` — rastreabilidade, guia de modelos e decisões técnicas;
+- `main.py` — execução integrada da pipeline;
+- `requirements.txt` — dependências.
 
-Consulte [PROJECT_DELIVERABLES.md](docs/PROJECT_DELIVERABLES.md) para a rastreabilidade dos requisitos, Scrum, CRISP-ML e limitações a resolver pelo grupo antes da entrega.
+O alvo é `attack_detected` (0: normal, 1: intrusão). Os resultados dependem do dataset disponível e devem ser interpretados como experimentais, não como garantia de desempenho numa rede real.
 
-Para a apresentação e defesa oral dos algoritmos, consulte [MODEL_GUIDE.md](docs/MODEL_GUIDE.md).
+## Documentação
+
+- [Rastreabilidade do projeto](docs/PROJECT_DELIVERABLES.md)
+- [Guia dos modelos](docs/MODEL_GUIDE.md)
+- [Notas técnicas da pipeline](docs/TECHNICAL_DOCUMENTATION.md)

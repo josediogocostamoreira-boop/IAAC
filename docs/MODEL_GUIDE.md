@@ -42,6 +42,16 @@ Este guia serve para explicar os modelos usados no projeto sem ler código ou sl
 
 **Frase para dizer:** “É um modelo rápido que combina evidências de cada atributo, mas simplifica a realidade ao assumir independência entre eles.”
 
+## Multinomial Naive Bayes
+
+**O que faz:** calcula probabilidades assumindo atributos não negativos, sendo comum em contagens e representações categóricas.
+
+**Porque foi usada:** completa as três variantes de Naive Bayes indicadas no roadmap. A pipeline aplica MinMaxScaler antes deste modelo para cumprir o requisito matemático de valores não negativos.
+
+**Vantagem e limitação:** é simples e rápido, mas a hipótese de distribuição multinomial pode não representar perfeitamente variáveis contínuas de rede.
+
+**Frase para dizer:** “Incluímos Multinomial Naive Bayes para cobrir a variante pedida no roadmap, garantindo antes que os atributos têm valores não negativos.”
+
 ## Bernoulli Naive Bayes
 
 **O que faz:** aplica Naive Bayes a atributos binários, por exemplo indicadores resultantes do one-hot encoding de protocolo, browser e encriptação.
@@ -114,6 +124,6 @@ Este guia serve para explicar os modelos usados no projeto sem ler código ou sl
 
 ## Como justificar a escolha final
 
-O modelo final não é escolhido apenas pela accuracy, porque num problema de intrusões uma classe pode ser mais frequente do que outra. A seleção usa o **F1 médio em validação cruzada estratificada**, que equilibra precision e recall e reduz a dependência de uma única divisão treino/teste. A tabela atual está em `models/model_metrics.csv`.
+O modelo final não é escolhido apenas pela accuracy, porque num problema de intrusões uma classe pode ser mais frequente do que outra. A seleção usa o **F1 médio em validação cruzada estratificada**, que equilibra precision e recall e reduz a dependência de uma única divisão treino/teste. A tabela de resultados é apresentada pelo notebook de avaliação ou por `main.py`.
 
 Na apresentação, indiquem sempre o resultado que consta no ficheiro de métricas gerado na última execução. No estado atual, o **Gradient Boosting** é o modelo selecionado.
