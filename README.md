@@ -37,3 +37,4 @@ O alvo é `attack_detected` (0: normal, 1: intrusão). Os resultados dependem do
 - [Rastreabilidade do projeto](docs/PROJECT_DELIVERABLES.md)
 - [Guia dos modelos](docs/MODEL_GUIDE.md)
 - [Notas técnicas da pipeline](docs/TECHNICAL_DOCUMENTATION.md)
+
