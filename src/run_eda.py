@@ -4,6 +4,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 
+if __package__:
+    from .project_paths import DEFAULT_DATASET_PATH, PROJECT_ROOT, validate_dataset_path
+else:
+    from project_paths import DEFAULT_DATASET_PATH, PROJECT_ROOT, validate_dataset_path
+
 
 def summarize(df, out_dir='outputs'):
     os.makedirs(out_dir, exist_ok=True)
@@ -15,13 +20,18 @@ def summarize(df, out_dir='outputs'):
         f.write('Missing values:\n')
         f.write(str(df.isna().sum()) + '\n\n')
         f.write('Description (numeric):\n')
-        f.write(str(df.describe(include=[np.number])) + '\n\n')
+        numeric_columns = df.select_dtypes(include=[np.number])
+        if numeric_columns.empty:
+            f.write('No numeric columns.\n\n')
+        else:
+            f.write(str(numeric_columns.describe()) + '\n\n')
     # target distribution if label exists
-    if 'label' in df.columns:
-        dist = df['label'].value_counts()
+    target_col = next((name for name in ('label', 'Label') if name in df.columns), None)
+    if target_col:
+        dist = df[target_col].value_counts()
         dist.to_csv(os.path.join(out_dir, 'label_distribution.csv'))
         plt.figure(figsize=(8,4))
-        sns.countplot(data=df, x='label')
+        sns.countplot(data=df, x=target_col)
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(os.path.join(out_dir, 'label_distribution.png'))
@@ -30,9 +40,9 @@ def summarize(df, out_dir='outputs'):
 
 if __name__ == '__main__':
     import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else '../archive/final_dataset.csv'
-    df = pd.read_csv(path)
+    path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DATASET_PATH
+    df = pd.read_csv(validate_dataset_path(path))
     print('Loaded', df.shape, 'rows')
-    out_dir = sys.argv[2] if len(sys.argv) > 2 else 'outputs'
+    out_dir = sys.argv[2] if len(sys.argv) > 2 else PROJECT_ROOT / 'outputs'
     summarize(df, out_dir=out_dir)
     print(f'EDA outputs saved to {out_dir}')

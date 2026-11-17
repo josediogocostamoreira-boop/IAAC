@@ -3,9 +3,14 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
+if __package__:
+    from .project_paths import DEFAULT_DATASET_PATH, validate_dataset_path
+else:
+    from project_paths import DEFAULT_DATASET_PATH, validate_dataset_path
+
 
 def load_data(path):
-    df = pd.read_csv(path)
+    df = pd.read_csv(validate_dataset_path(path))
     return df
 
 
@@ -37,6 +42,8 @@ def scale_features(X_train, X_test):
 
 
 def split_data(df, target_col='label', test_size=0.2, random_state=42):
+    if target_col not in df.columns and target_col == 'label' and 'Label' in df.columns:
+        target_col = 'Label'
     X = df.drop(columns=[target_col])
     y = df[target_col]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
@@ -45,7 +52,7 @@ def split_data(df, target_col='label', test_size=0.2, random_state=42):
 
 if __name__ == '__main__':
     import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else '../archive/final_dataset.csv'
+    path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DATASET_PATH
     df = load_data(path)
     df = basic_clean(df)
     df = handle_missing(df)

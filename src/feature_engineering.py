@@ -8,9 +8,14 @@ from sklearn.metrics import classification_report
 import joblib
 import json
 
+if __package__:
+    from .project_paths import DEFAULT_DATASET_PATH, PROJECT_ROOT, validate_dataset_path
+else:
+    from project_paths import DEFAULT_DATASET_PATH, PROJECT_ROOT, validate_dataset_path
+
 
 def select_features(path, n_samples=100000, top_k=20, target_col='Label'):
-    df = pd.read_csv(path)
+    df = pd.read_csv(validate_dataset_path(path))
     if 'label' in df.columns and 'Label' not in df.columns:
         df = df.rename(columns={'label':'Label'})
     if len(df) > n_samples:
@@ -30,7 +35,7 @@ def select_features(path, n_samples=100000, top_k=20, target_col='Label'):
 
 def train_with_selected(path, selected_features, n_samples=200000, target_col='Label', out_dir='models'):
     os.makedirs(out_dir, exist_ok=True)
-    df = pd.read_csv(path)
+    df = pd.read_csv(validate_dataset_path(path))
     if 'label' in df.columns and 'Label' not in df.columns:
         df = df.rename(columns={'label':'Label'})
     if len(df) > n_samples:
@@ -55,13 +60,14 @@ def train_with_selected(path, selected_features, n_samples=200000, target_col='L
 
 if __name__ == '__main__':
     import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else '../archive/final_dataset.csv'
+    path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DATASET_PATH
     top_k = int(sys.argv[2]) if len(sys.argv) > 2 else 20
     selected, feat_imp = select_features(path, n_samples=100000, top_k=top_k)
-    os.makedirs('models', exist_ok=True)
-    with open('models/selected_features.json', 'w', encoding='utf-8') as f:
+    model_dir = PROJECT_ROOT / 'models'
+    os.makedirs(model_dir, exist_ok=True)
+    with open(model_dir / 'selected_features.json', 'w', encoding='utf-8') as f:
         json.dump(selected, f, indent=2)
-    feat_imp.to_csv('models/feature_importances.csv')
+    feat_imp.to_csv(model_dir / 'feature_importances.csv')
     print('Selected features:', selected)
-    report = train_with_selected(path, selected, n_samples=200000)
-    print('Training report saved to models/rf_selected_report.csv')
+    report = train_with_selected(path, selected, n_samples=200000, out_dir=model_dir)
+    print(f'Training report saved to {model_dir / "rf_selected_report.csv"}')
