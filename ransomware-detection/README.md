@@ -19,6 +19,12 @@ a triagem de malware. O projeto não executa ficheiros `.exe`.
   generativo Hugging Face executado localmente.
 - [`src/run_crewai_agents.py`](./src/run_crewai_agents.py): alternativa
   multiagente com CrewAI.
+- [`eda_ransomware_dataset_2024.ipynb`](./eda_ransomware_dataset_2024.ipynb):
+  exploração geral do dataset.
+- [`data-preparation.ipynb`](./data-preparation.ipynb): inspeção da qualidade,
+  preparação e exportação do dataset preparado.
+- [`model-training.ipynb`](./model-training.ipynb): benchmark, seleção e treino
+  dos classificadores supervisionados.
 - [`model-deployment.ipynb`](./model-deployment.ipynb): benchmark, inferência
   de todos os modelos guardados e uso dos agentes.
 - [`docs/diagrams.md`](./docs/diagrams.md): arquitetura multiagente e caso de
